@@ -1,7 +1,7 @@
 #[path = "../config.rs"]
 mod config;
 
-use paho_mqtt::{self as mqtt, MQTT_VERSION_3_1};
+use paho_mqtt::{self as mqtt, MQTT_VERSION_5};
 use futures::{executor::block_on, stream::StreamExt};
 use std::{env, process, time::Duration};
 
@@ -16,7 +16,7 @@ fn main() {
         .unwrap_or_else(|| "mqtt://localhost:1883".to_string());
 
     // Create the client. Use an ID for a persistent session.
-    let create_opts = mqtt::CreateOptionsBuilder::new_v3()
+    let create_opts = mqtt::CreateOptionsBuilder::new()
         .server_uri(host)
         .client_id("infr_orch_serv")
         .finalize();
@@ -44,9 +44,9 @@ fn main() {
         );
 
         // Connect with MQTT v5 and a persistent server session (no clean start).
-        let conn_opts = mqtt::ConnectOptionsBuilder::new_v3()
-            .clean_session(false)
-            .keep_alive_interval(Duration::from_secs(30))
+        let conn_opts = mqtt::ConnectOptionsBuilder::with_mqtt_version(MQTT_VERSION_5)
+            .clean_start(false)
+            .properties(mqtt::properties![mqtt::PropertyCode::SessionExpiryInterval => 30])
             .will_message(lwt)
             .finalize();
 
