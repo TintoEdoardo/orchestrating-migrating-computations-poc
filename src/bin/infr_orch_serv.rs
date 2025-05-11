@@ -79,6 +79,7 @@ fn main() {
                 if msg.topic() == config::TOPIC_COMMAND &&
                     msg.payload() == "FEDERATE".as_bytes()
                 {
+                    println!("msg.payload() == FEDERATE");
                     fed_cmd_req = true;
                     // Notify to all the nodes that the federation process starts.
                     let msg = mqtt::Message::new(
@@ -93,6 +94,7 @@ fn main() {
                         local_data.push(0.0);
                         // Check if we have enough data to proceed with the updates.
                         if local_data.len() == config::NUMBER_OF_NODES {
+                            println!("local_data.len() == config::NUMBER_OF_NODES");
                             let mut result_found = false;
                             // TODO: Global update.
                             // Notify to all the nodes what have been found.
@@ -101,16 +103,18 @@ fn main() {
                                     config::TOPIC_FEDERATION_MAIN,
                                     "RESULT FOUND",
                                     config::QUALITY_OF_SERVICE);
+                                subscriber.publish(msg).await?;
                                 fed_cmd_req = false;
                             }
                             else {
+                                println!("result_found == FALSE");
                                 // Notify to all the nodes that the federation process starts.
                                 let msg = mqtt::Message::new(
                                     config::TOPIC_FEDERATION_MAIN,
                                     "CONTINUE (z)",
                                     config::QUALITY_OF_SERVICE);
+                                subscriber.publish(msg).await?;
                             }
-                            subscriber.publish(msg).await?;
                             local_data.clear();
                         }
                     }
