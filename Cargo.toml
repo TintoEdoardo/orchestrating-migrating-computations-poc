@@ -1,0 +1,8 @@
+[package]
+name = "orchestrating-migrating-computations-poc"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+paho-mqtt = "0.13.3"
+futures = "0.3.31"
