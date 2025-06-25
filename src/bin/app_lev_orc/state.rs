@@ -1,4 +1,4 @@
-use std::{convert::Infallible, fmt::format, mem::zeroed, str::FromStr, string::ParseError};
+use std::{convert::Infallible, str::FromStr};
 
 ///              ///
 ///     STATE    ///
@@ -29,9 +29,14 @@ pub struct NodeState {
 }
 
 impl NodeState {
-    fn update(&mut self, coord : Coord) {
+    pub fn update(&mut self, coord : Coord) {
         self.node_coords = coord;
     }
+
+    pub fn get_coord(&self) -> Coord {
+        self.node_coords
+    }
+
 }
 
 impl FromStr for NodeState {
@@ -77,38 +82,66 @@ pub struct Request {
 
     // Desired geographical position
     desired_coord   : Coord,
+
+    // Threshold for migration
+    threshold       : f32,
+
+    // Migration flag
+    should_migrate  : bool
 }
 
 impl Request {
     pub fn new_from(
         execution_time  : u32,
         required_memory : u32,
-        desired_coord   : Coord) -> Self {
-        Self { execution_time, required_memory, desired_coord }
+        desired_coord   : Coord,
+        threshold       : f32) -> Self {
+        Self { execution_time, required_memory, desired_coord, threshold, should_migrate : false }
     }
+
+    pub fn set_should_migrate(&mut self, migrate : bool) {
+        self.should_migrate = migrate;
+    }
+}
+
+/// Decide whether to trigger a migraiton, depending
+/// on the distance between a request desired state 
+/// and the node state
+pub fn should_migrate(request : &Request, node_state : &NodeState) -> bool {
+    let mut result = false;
+    let distance = f32::sqrt(
+        (request.desired_coord.x - node_state.get_coord().x).powi(2) 
+        + (request.desired_coord.y - node_state.get_coord().y).powi(2));
+    if request.threshold > distance {
+        result = true
+    }
+    result
 }
 
 /// The state of the application is composed of: 
 /// (1) node-related information
 /// (2) application-specific information
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct ApplicationState {
     // Node-related fields
-    node_state : NodeState,
+    pub node_state : NodeState,
 
     // Appliation-related fields
-    requests   : [Request; 5],
+    pub requests           : Vec<Request>,
+    pub number_of_requests : u32,
 }
 
 impl ApplicationState {
     pub fn new(node_coords : Coord) -> Self {
         Self { 
-            node_state : NodeState { node_coords }, 
-            requests   : [zeroed(); 5] }
+            node_state         : NodeState { node_coords }, 
+            requests           : Vec::with_capacity(5),
+            number_of_requests : 0, 
+        }
     }
 
     pub fn read_node_state(self) -> NodeState {
-        self.node_state
+        self.node_state.clone()
     }
 
     pub fn update_node_state(&mut self, coord : Coord) {
@@ -121,9 +154,17 @@ impl ApplicationState {
         self.requests.push(request);
     }
 
-    /// Funciton invoked in the source node, after
+    /// Function invoked in the source node, after
     /// a migration occured
     pub fn remove_request(&mut self, index : usize) {
         self.requests.remove(index);
+    }
+
+    pub fn get_request_number(&self) -> u32 {
+        self.number_of_requests
+    }
+
+    pub fn read_request(&self, index : usize) -> &Request {
+        &self.requests[index]
     }
 }

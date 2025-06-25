@@ -1,6 +1,6 @@
-///                              ///
-///     STATE MONITORING LOOP    ///
-///                              ///
+///                                   ///
+///     REQUESTS COORDINATION LOOP    ///
+///                                   ///
 
 use paho_mqtt::{self as mqtt, MQTT_VERSION_5};
 use futures::{executor::block_on, stream::StreamExt};
@@ -10,14 +10,15 @@ use crate::state::{ApplicationState, NodeState};
 
 pub struct OperationControlSystems {
     client : mqtt::AsyncClient,
-    topic  : String,
+    topics : [String; 4],
 }
 
 impl OperationControlSystems {
 
     pub fn new(application_index : usize, node_index : usize) -> Self {
         // Initialization 
-        let host = "mqtt://localhost:1883".to_string();
+        // TODO!
+        let host = "mqtt://IP_OF_NODE:1883".to_string();
 
         let client_id = format!("node_{}_app_{}", node_index, application_index);
 
@@ -39,14 +40,17 @@ impl OperationControlSystems {
 
         Self {
             client,
-            topic : "node_state".to_string(),
+            topics : 
+                ["federation/migration".to_string(),
+                 "federation/local_update".to_string(),
+                 format!("federation/src/{}", node_index).to_string(),
+                 format!("federation/dst/{}", node_index).to_string()]
         }
     
     }
 
-    /// The function is invoked asynchronously by the 
-    /// infrastructure-level orchestrator, sporadically, 
-    /// with a fixed period
+    /// The function contains the implementation of the ADMM solver. 
+    /// It runs 
     pub fn start_monitoring_state_loop(&mut self, application_state : Arc<Mutex<ApplicationState>>) {
         if let Err(err) = block_on(async {
 
@@ -55,7 +59,7 @@ impl OperationControlSystems {
 
             // Define the set of options for the connection
             let lwt = mqtt::Message::new(
-                self.topic.clone(),
+                self.topic,
                 "[LWT] Async subscriber lost connection",
                 mqtt::QOS_1,
             );
@@ -85,7 +89,7 @@ impl OperationControlSystems {
             while let Some(msg_opt) = strm.next().await {
                 if let Some(msg) = msg_opt {
                     // Check is a "federate" command has been issued.
-                    if msg.topic() == self.topic
+                    if msg == 
                     {
                         // Parse the received message
                         let node_state = msg.payload_str().parse::<NodeState>().expect("msg");
