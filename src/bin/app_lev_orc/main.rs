@@ -6,6 +6,7 @@ mod state;
 mod state_monitoring_loop;
 mod requests_monitoring_loop;
 mod requests_coordination_loop;
+mod admm_solver;
 
 use std::sync::{Arc, Mutex};
 

@@ -16,18 +16,18 @@ pub struct OperationControlSystems {
 impl OperationControlSystems {
 
     pub fn new(application_index : usize, node_index : usize) -> Self {
-        // Initialization 
+        // Initialization. 
         let host = "mqtt://localhost:1883".to_string();
 
         let client_id = format!("node_{}_app_{}", node_index, application_index);
 
-        // Create the client. Use an ID for a persistent session 
+        // Create the client. Use an ID for a persistent session. 
         let create_opts = mqtt::CreateOptionsBuilder::new()
             .server_uri(host)
             .client_id(client_id)
             .finalize();
 
-        // Create the subscriber connection 
+        // Create the subscriber connection. 
         let client = mqtt::AsyncClient::new(create_opts).unwrap_or_else(|e| {
             println!("Error creating the client: {:?}", e);
             std::process::exit(1);
@@ -46,21 +46,21 @@ impl OperationControlSystems {
 
     /// The function is invoked asynchronously by the 
     /// infrastructure-level orchestrator, sporadically, 
-    /// with a fixed period
+    /// with a fixed period. 
     pub fn start_monitoring_state_loop(&mut self, application_state : Arc<Mutex<ApplicationState>>) {
         if let Err(err) = block_on(async {
 
-            // Get message stream before connecting
+            // Get message stream before connecting. 
             let mut strm = self.client.get_stream(5);
 
-            // Define the set of options for the connection
+            // Define the set of options for the connection. 
             let lwt = mqtt::Message::new(
                 self.topic.clone(),
                 "[LWT] Async subscriber lost connection",
                 mqtt::QOS_1,
             );
 
-            // Connect with MQTT v5 and a persistent server session (no clean start) 
+            // Connect with MQTT v5 and a persistent server session (no clean start). 
             let conn_opts = mqtt::ConnectOptionsBuilder::with_mqtt_version(MQTT_VERSION_5)
                 .clean_start(false)
                 .properties(mqtt::properties![mqtt::PropertyCode::SessionExpiryInterval => 30])
@@ -68,7 +68,7 @@ impl OperationControlSystems {
                 .finalize();
 
             println!("Connect...");
-            // Make the connection to the broker
+            // Make the connection to the broker. 
             self.client.connect(conn_opts).await?;
 
             println!("Subscribing to topics...");
@@ -87,10 +87,10 @@ impl OperationControlSystems {
                     // Check is a "federate" command has been issued.
                     if msg.topic() == self.topic
                     {
-                        // Parse the received message
+                        // Parse the received message. 
                         let node_state = msg.payload_str().parse::<NodeState>().expect("msg");
 
-                        // The update the NodeState object within ApplicationState
+                        // The update the NodeState object within ApplicationState. 
                         {
                             application_state.lock().unwrap().update_node_state(node_state.get_coord());
                         }
@@ -99,7 +99,7 @@ impl OperationControlSystems {
                 }
             }
             
-            // Explicit return type for the async block
+            // Explicit return type for the async block. 
             Ok::<(), mqtt::Error>(())
         }) 
         {

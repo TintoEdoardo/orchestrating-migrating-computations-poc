@@ -1,4 +1,4 @@
-use std::{convert::Infallible, str::FromStr};
+use std::{convert::Infallible, str::FromStr, string::ParseError};
 
 ///              ///
 ///     STATE    ///
@@ -20,6 +20,15 @@ impl Coord {
     pub fn new_from(x : f32, y : f32) -> Self {
         Self { x, y }
     }
+
+    pub fn get_x(&self) -> f32 {
+        self.x
+    }
+
+    pub fn get_y(&self) -> f32 {
+        self.y
+    }
+
 }
 
 /// The state of the hosting node
@@ -101,6 +110,51 @@ impl Request {
 
     pub fn set_should_migrate(&mut self, migrate : bool) {
         self.should_migrate = migrate;
+    }
+
+    pub fn read_desired_coord(&self) -> Coord {
+        self.desired_coord
+    }
+}
+
+impl FromStr for Request {
+    type Err = ParseError;
+
+    /// Expected string: 
+    ///     \[xx;xx;(xx,xx);xx\]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut execution_time  : u32   = 0;
+        let mut required_memory : u32   = 0;
+        let mut desired_coord   : Coord = Coord { x: -1.0, y: -1.0 };
+        let mut threshold       : f32   = 0.0;
+
+        let trimmed_s = s.replace('[', "").replace(']', "");
+        let fields : Vec<&str> = trimmed_s.split_terminator(';').collect();
+
+        match (fields.get(0), fields.get(1), fields.get(2), fields.get(3)) {
+            (Some(&exec_time), Some(&req_memory), Some(&des_coord), Some(&thresh)) => {
+                execution_time = u32::from_str(exec_time).expect("Unable to convert exec_time to u32");
+                required_memory = u32::from_str(req_memory).expect("Unable to convert req_memory to u32");
+                desired_coord = NodeState::from_str(des_coord).expect("Unable to convert des_coord to Coord").node_coords; // This is atrocious, correct: TODO!
+                threshold = f32::from_str(thresh).expect("Unable to convert thresh to f32");
+            }
+            _ => {}
+        }
+
+        Ok(Request {
+            execution_time, required_memory, desired_coord, threshold, should_migrate : false,
+        })
+    }
+}
+
+impl ToString for Request {
+    fn to_string(&self) -> String {
+        format!("[{};{};({},{});{}]", 
+            self.execution_time, 
+            self.required_memory, 
+            self.desired_coord.x,
+            self.desired_coord.y,
+            self.threshold)
     }
 }
 
