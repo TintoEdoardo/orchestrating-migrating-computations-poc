@@ -6,10 +6,6 @@ edition = "2024"
 [dependencies]
 paho-mqtt = "0.13.3"
 futures = "0.3.31"
-rustix = { version = "1.0.7", features = ["time", "thread"] }
-affinity = "0.1.2"
-libc = { path = "./libc" }
+libc = "0.2.174"
 wasmtime = "31.0.0"
 wasmtime-wasi = "31.0.0"
-serde = "1.0.219"
-serde_json = "1.0.140"
