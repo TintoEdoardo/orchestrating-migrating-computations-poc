@@ -48,6 +48,8 @@ impl OperationControlSystems {
             libc::clock_nanosleep(libc::CLOCK_MONOTONIC, libc::TIMER_ABSTIME, &mut next_activation, core::ptr::null_mut());
         }
 
+        println!(" - START RML - ");
+
         // Workload. 
         loop {
             // Compute next activation. 

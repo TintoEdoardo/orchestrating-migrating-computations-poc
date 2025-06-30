@@ -42,7 +42,7 @@ fn main() {
         let mut strm = client.get_stream(25);
 
         // Define the set of options for the connection
-        let lwt = mqtt::Message::new(
+        let lwt: paho_mqtt::Message = mqtt::Message::new(
             "federate/gather",
             "[LWT] Async subscriber lost connection",
             mqtt::QOS_1,

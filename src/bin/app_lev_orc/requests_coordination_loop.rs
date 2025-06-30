@@ -79,7 +79,7 @@ impl OperationControlSystems {
     pub fn new(application_index : usize, node_index : usize) -> Self {
         // Initialization. 
         // TODO! Decide on IPs
-        let host = "mqtt://IP_OF_NODE:1883".to_string();
+        let host = "mqtt://localhost:1883".to_string();
 
         let client_id = format!("node_{}_app_{}", node_index, application_index);
 
@@ -158,6 +158,8 @@ impl OperationControlSystems {
                 GlobalSolver::new(self.node_number, self.iteration_limit);
             let mut node_state : NodeState;
             let mut dest_node : Option<usize> = None;
+
+            println!(" - START RCL - ");
 
             // Loop on incoming messages.
             println!("Waiting for messages...");

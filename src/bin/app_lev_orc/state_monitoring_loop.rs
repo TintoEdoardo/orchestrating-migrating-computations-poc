@@ -79,7 +79,8 @@ impl OperationControlSystems {
                 &sub_opts,
                 None).await?;
 
-
+            println!(" - START SML - ");
+            
             // Just loop on incoming messages.
             println!("Waiting for messages...");
             while let Some(msg_opt) = strm.next().await {
