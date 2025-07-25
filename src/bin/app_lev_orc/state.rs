@@ -19,6 +19,7 @@ impl Coord
         Self { x: 0.0, y: 0.0 }
     }
 
+    #[allow(dead_code)]
     pub fn new_from (x : f32, y : f32) -> Self
     {
         Self { x, y }

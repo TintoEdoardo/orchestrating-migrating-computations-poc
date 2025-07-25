@@ -73,6 +73,9 @@ pub struct ControlSystem
     /// The index of the node.
     node_index        : usize,
 
+    /// Affinity for the sporadic server.
+    ss_affinity       : usize,
+
     /// The index of the application.
     application_index : usize,
 
@@ -87,7 +90,7 @@ pub struct ControlSystem
 impl ControlSystem
 {
 
-    pub fn new (application_index : usize, node_index : usize, ip_and_port : String) -> Self
+    pub fn new (application_index: usize, node_index: usize, ip_and_port: String, affinity: usize) -> Self
     {
 
         #[cfg(feature = "print_log")]
@@ -133,6 +136,7 @@ impl ControlSystem
                  "disconnect".to_string ()],
             node_number     : 4,
             node_index,
+            ss_affinity     : affinity,
             application_index,
             penalty         : 20.0,
             iteration_limit : 20,
@@ -373,9 +377,7 @@ impl ControlSystem
 
                                     // Compress the folder of the request.
                                     let compressed_file_name =
-                                        format! ("{}_{}_req.zip",
-                                                 self.application_index,
-                                                 request.get_index ());
+                                        format! ("{}_{}_req.zip", self.application_index, request.get_index ());
                                     let compressed_file = std::fs::OpenOptions::new ()
                                         .append (true)
                                         .write (true)
@@ -446,6 +448,11 @@ impl ControlSystem
                                         }
                                         writer.write_all (&buffer[..n])?;
                                     }
+
+                                    // Remove the directory corresponding to the request.
+                                    /* let request_dir =
+                                        format! ("/requests/{}_{}_req", self.application_index, request.get_index ());
+                                    std::fs::create_dir_all(request_dir).unwrap(); */
                                 }
                             None =>
                                 {
@@ -572,24 +579,18 @@ impl ControlSystem
                                         }
                                     }
 
-                                    // Prepare the file for a possible checkpoint.
-                                    /* let main_memory =
-                                        format! ("{}_{}_main_memory.b", self.application_index, request_index);
-                                    let checkpoint_memory =
-                                        format! ("{}_{}_checkpoint_memory.b", self.application_index, request_index);
-
-                                    let mut main_memory_file = std::fs::File::create(main_memory)?;
-                                    let mut checkpoint_memory_file = std::fs::File::create(checkpoint_memory)?;
-                                     */
+                                    let request_dir =
+                                        format! ("/requests/{}_{}_req", self.application_index, request.get_index ());
 
                                     // Run the request as a separate thread.
                                     let app_state = application_state.clone ();
+                                    let affinity = self.ss_affinity.clone ();
                                     let handle = std::thread::spawn(move ||
                                         {
-                                            // TODO: Add path to wasm.
                                             let server : sporadic_server::ControlSystem =
-                                                sporadic_server::ControlSystem::new ("".to_string (), app_state, 0);
-                                            server.initialize (10, 2);
+                                                sporadic_server::ControlSystem::new
+                                                    (request_dir.to_string (), app_state, request.get_index ());
+                                            server.initialize (10, affinity);
                                             server.start();
                                         });
                                     handle.join ().unwrap ();

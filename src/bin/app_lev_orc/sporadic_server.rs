@@ -2,6 +2,7 @@
 /*     SPORADIC SERVER     */
 /***************************/
 
+use std::io::Read;
 use crate::state::{ApplicationState};
 
 // Todo: cgroup and sequential execution of requests.
@@ -12,20 +13,20 @@ use crate::state::{ApplicationState};
 /// for the sporadic server.
 pub struct ControlSystem
 {
-    wasm_file         : String,
+    request_directory : String,
     application_state : std::sync::Arc<std::sync::Mutex<ApplicationState>>,
     request_index     : usize,
 }
 
 impl ControlSystem
 {
-    pub fn new(wasm_file: String,
-               application_state: std::sync::Arc<std::sync::Mutex<ApplicationState>>,
-               request_index : usize) -> Self
+    pub fn new (request_directory: String,
+               application_state : std::sync::Arc<std::sync::Mutex<ApplicationState>>,
+               request_index     : usize) -> Self
     {
         Self
         {
-            wasm_file,
+            request_directory,
             application_state,
             request_index,
         }
@@ -74,6 +75,8 @@ impl ControlSystem
             wasi              : wasmtime_wasi::preview1::WasiP1Ctx,
             application_state : std::sync::Arc<std::sync::Mutex<ApplicationState>>,
             request_index     : usize,
+            main_memory_file        : Option<std::fs::File>,
+            checkpoint_memory_file  : Option<std::fs::File>,
         }
 
         // Create the engine.
@@ -81,7 +84,7 @@ impl ControlSystem
         let engine = wasmtime::Engine::default ();
 
         // Load the module.
-        let path_to_module = &self.wasm_file;
+        let path_to_module = format! ("{}/{}", self.request_directory.to_string (), "module.wasm");
         let module =
             wasmtime::Module::from_file (&engine, path_to_module)
                 .expect ("Failed to load wasm file. ");
@@ -121,15 +124,119 @@ impl ControlSystem
             }
         ).expect ("func_wrap failed. ");
 
+        // Prepare the file for a possible checkpoint.
+        let main_memory =
+            format! ("{}/{}", self.request_directory, "main_memory.b");
+        let checkpoint_memory =
+            format! ("{}/{}", self.request_directory, "checkpoint_memory.b");
+
+        let main_memory_file_r = std::fs::OpenOptions::new ()
+            .create (true)
+            .write (true)
+            .open (main_memory);
+        let main_memory_file = match main_memory_file_r
+        {
+            Ok (file) => Some (file),
+            Err (_) => None,
+        };
+
+        let checkpoint_memory_file_r = std::fs::OpenOptions::new ()
+            .create (true)
+            .write (true)
+            .open (checkpoint_memory);
+        let checkpoint_memory_file = match checkpoint_memory_file_r
+        {
+            Ok (file) => Some (file),
+            Err (_) => None,
+        };
+
+        let main_mem_export = module.get_export_index ("memory")
+            .expect ("Unable to find main_mem_export. ");
+        let checkpoint_mem_export = module.get_export_index ("checkpoint_memory")
+            .expect("Unable to find checkpoint_mem_export. ");
+
+        #[cfg(feature = "print_log")]
+        let request_index = self.request_index;
+
         // Add the restore_memory, which do nothing right now.
-        linker.func_wrap ("host", "restore_memory", |caller: wasmtime::Caller<'_, MyState>|
+        linker.func_wrap ("host", "restore_memory", move |mut caller: wasmtime::Caller<'_, MyState>|
             {
-                let request_index : usize = caller.data ().request_index;
 
                 #[cfg(feature = "print_log")]
                 println! ("request {} - restore_memory START", request_index);
 
+                let main_memory = match caller.get_module_export (&main_mem_export)
+                {
+                    Some (wasmtime::Extern::Memory (mem)) => mem,
+                    _ => panic! ("Failed to find host memory. "),
+                };
+                let main_mem_ptr = main_memory.data_ptr (&caller);
 
+                let checkpoint_mem = match caller.get_module_export (&checkpoint_mem_export)
+                {
+                    Some (wasmtime::Extern::Memory (mem)) => mem,
+                    _ => panic! ("Failed to find host checkpoint memory. "),
+                };
+                let checkpoint_memory_ptr = checkpoint_mem.data_ptr (&caller);
+
+                // Restore the main memory, only if a checkpoint is provided
+                // in the first place.
+                match &caller.data().main_memory_file
+                {
+                    None =>
+                        {
+                            // Do nothing.
+                        }
+                    Some(file) =>
+                        {
+                            let index : usize = 0;
+                            for byte in file.bytes()
+                            {
+                                match byte {
+                                    Ok (byte) =>
+                                        {
+                                            unsafe
+                                                {
+                                                    *main_mem_ptr.wrapping_add (index) = byte;
+                                                }
+                                        }
+                                    _ =>
+                                        {
+                                            break;
+                                        }
+                                }
+                            }
+                        }
+                }
+
+                // Same for the checkpoint memory containing the stored variables.
+                match &caller.data().checkpoint_memory_file
+                {
+                    None =>
+                        {
+                            // Do nothing.
+                        }
+                    Some(file) =>
+                        {
+                            let index : usize = 0;
+                            for byte in file.bytes()
+                            {
+                                match byte {
+                                    Ok (byte) =>
+                                        {
+                                            unsafe
+                                                {
+                                                    *checkpoint_memory_ptr.wrapping_add (index) = byte;
+                                                }
+                                        }
+                                    _ =>
+                                        {
+                                            break;
+                                        }
+                                }
+                            }
+                        }
+                }
 
                 #[cfg(feature = "print_log")]
                 println! ("request {} - restore_memory END", request_index);
@@ -153,6 +260,8 @@ impl ControlSystem
             wasi              : wasi_ctx,
             application_state : self.application_state.clone (),
             request_index     : self.request_index,
+            main_memory_file,
+            checkpoint_memory_file,
         };
         let mut store = wasmtime::Store::new (&engine, state);
 

@@ -9,11 +9,23 @@ mod requests_coordination_loop;
 mod admm_solver;
 mod sporadic_server;
 
+/// Example of invocation: ./app_lev_orc 192.168.1.2:80 0 0 (2.15,9.8) 2
 fn main ()
 {
+    // Parse input arguments.
+    let args: Vec<String> = std::env::args ().collect ();
+    let node_address      : String = args[1].to_string ();
+    let node_index        : usize = args[2].parse::<usize > ()
+        .expect ( "Unable to parse node index. " );
+    let application_index : usize = args[3].parse::<usize > ()
+        .expect( "Unable to parse application index. " );
+    let node_state        : state::NodeState = args[4].parse::<state::NodeState> ()
+        .expect("Unable to parse into NodeState. ");
+    let affinity          : usize = args[5].parse::<usize> ()
+        .expect ( "Unable to parse affinity. " );
 
     // Node data. 
-    let node_coords : state::Coord = state::Coord::new_from (0.0, 0.0);
+    let node_coords : state::Coord = node_state.get_coord ();
 
     // Initialize the application state. 
     let application_state: std::sync::Arc<std::sync::Mutex<state::ApplicationState>> =
@@ -35,9 +47,21 @@ fn main ()
     }
 
     // Initialize the taskset. 
-    let mut state_monitoring_loop      = state_monitoring_loop::ControlSystem::new (0, 0);
-    let mut requests_monitoring_loop   = requests_monitoring_loop::ControlSystem::new (0, 0, 100_000, first_activation, 20, 8);
-    let mut requests_coordination_loop = requests_coordination_loop::ControlSystem::new (0, 0, "192.168.1.10:80".to_string ());
+    let mut state_monitoring_loop      =
+        state_monitoring_loop::ControlSystem::new (application_index,
+                                                   node_index);
+    let mut requests_monitoring_loop   =
+        requests_monitoring_loop::ControlSystem::new (node_index,
+                                                      application_index,
+                                                      100_000,
+                                                      first_activation,
+                                                      20,
+                                                      affinity);
+    let mut requests_coordination_loop =
+        requests_coordination_loop::ControlSystem::new (application_index,
+                                                        node_index,
+                                                        node_address.to_string (),
+                                                        affinity);
 
     // Start each task. 
     let mut handles = vec![];
