@@ -4,8 +4,16 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-paho-mqtt = "0.13.3"
+# paho-mqtt = "0.13.3"
+paho-mqtt = { version = "0.13", default-features=false, features=["bundled"] }
 futures = "0.3.31"
 libc = "0.2.174"
 wasmtime = "31.0.0"
 wasmtime-wasi = "31.0.0"
+zip = "4.3.0"
+walkdir = "2.5.0"
+
+[features]
+default = ["print_log"]
+periodic_activation = []
+print_log = []

@@ -1,110 +1,135 @@
-///                              ///
-///     STATE MONITORING LOOP    ///
-///                              ///
+/***************************************/
+/*        STATE MONITORING LOOP        */
+/***************************************/
 
 use paho_mqtt::{self as mqtt, MQTT_VERSION_5};
 use futures::{executor::block_on, stream::StreamExt};
-use std::sync::{Arc, Mutex};
 
 use crate::state::{ApplicationState, NodeState};
 
-pub struct OperationControlSystems {
+/// Data and functions associated with the
+/// state_monitoring_loop.
+pub struct ControlSystem
+{
     client : mqtt::AsyncClient,
     topic  : String,
 }
 
-impl OperationControlSystems {
+impl ControlSystem
+{
+    pub fn new (application_index: usize, node_index: usize) -> Self
+    {
 
-    pub fn new(application_index : usize, node_index : usize) -> Self {
+        #[cfg(feature = "print_log")]
+        println! ("state_monitoring_loop - new START");
+
         // Initialization. 
-        let host = "mqtt://localhost:1883".to_string();
+        let host = "mqtt://192.168.1.12:1883".to_string ();
 
-        let client_id = format!("node_{}_app_{}", node_index, application_index);
+        let client_id = format! ("node_{}_app_{}_sml", node_index, application_index);
 
         // Create the client. Use an ID for a persistent session. 
-        let create_opts = mqtt::CreateOptionsBuilder::new()
-            .server_uri(host)
-            .client_id(client_id)
-            .finalize();
+        let create_opts = mqtt::CreateOptionsBuilder::new ()
+            .server_uri (host)
+            .client_id( client_id)
+            .finalize ();
 
         // Create the subscriber connection. 
-        let client = mqtt::AsyncClient::new(create_opts).unwrap_or_else(|e| {
-            println!("Error creating the client: {:?}", e);
-            std::process::exit(1);
-        });
+        let client = mqtt::AsyncClient::new (create_opts).unwrap_or_else (|e|
+            {
+                panic! ("state_monitoring_loop - error creating the client: {:?}", e);
+            }
+        );
 
-        client.set_disconnected_callback(|_, _props, reason| {
-            println!("Server disconnected with reason: {}", reason);
-        });
+        client.set_disconnected_callback(|_, _props, reason|
+            {
+                panic! ("state_monitoring_loop - server disconnected with reason: {}", reason);
+            }
+        );
 
-        Self {
+        #[cfg(feature = "print_log")]
+        println! ("state_monitoring_loop - new END");
+
+        Self
+        {
             client,
-            topic : "node_state".to_string(),
+            topic : "node_state".to_string (),
         }
     
     }
 
-    /// The function is invoked asynchronously by the 
-    /// infrastructure-level orchestrator, sporadically, 
-    /// with a fixed period. 
-    pub fn start_monitoring_state_loop(&mut self, application_state : Arc<Mutex<ApplicationState>>) {
-        if let Err(err) = block_on(async {
+    /// Start the state monitoring loop.
+    pub fn start (&mut self, application_state: std::sync::Arc<std::sync::Mutex<ApplicationState>>)
+    {
 
-            // Get message stream before connecting. 
-            let mut strm = self.client.get_stream(5);
+        #[cfg(feature = "print_log")]
+        println! ("state_monitoring_loop - INIT");
 
-            // Define the set of options for the connection. 
-            let lwt = mqtt::Message::new(
-                self.topic.clone(),
-                "[LWT] Async subscriber lost connection",
-                mqtt::QOS_1,
-            );
+        if let Err (err) = block_on (async
+            {
+                // Get message stream before connecting.
+                let mut strm = self.client.get_stream (15);
 
-            // Connect with MQTT v5 and a persistent server session (no clean start). 
-            let conn_opts = mqtt::ConnectOptionsBuilder::with_mqtt_version(MQTT_VERSION_5)
-                .clean_start(false)
-                .properties(mqtt::properties![mqtt::PropertyCode::SessionExpiryInterval => 30])
-                .will_message(lwt)
-                .finalize();
+                // Define the set of options for the connection.
+                let lwt = mqtt::Message::new (
+                    self.topic.clone (),
+                    "[LWT] Async subscriber 'state_monitoring_loop' lost connection",
+                    mqtt::QOS_1,
+                );
 
-            println!("Connect...");
-            // Make the connection to the broker. 
-            self.client.connect(conn_opts).await?;
+                // Connect with MQTT v5 and a persistent server session (no clean start).
+                let conn_opts = mqtt::ConnectOptionsBuilder::with_mqtt_version (MQTT_VERSION_5)
+                    .clean_start (true)
+                    .properties (mqtt::properties![mqtt::PropertyCode::SessionExpiryInterval => 3600])
+                    .will_message (lwt)
+                    .finalize ();
 
-            println!("Subscribing to topics...");
-            let sub_opts = vec![mqtt::SubscribeOptions::with_retain_as_published(); 2];
-            self.client.subscribe_many_with_options(
-                &[self.topic.clone()],
-                &[mqtt::QOS_1],
-                &sub_opts,
-                None).await?;
+                // Make the connection to the broker.
+                self.client.connect (conn_opts).await?;
 
-            println!(" - START SML - ");
-            
-            // Just loop on incoming messages.
-            println!("Waiting for messages...");
-            while let Some(msg_opt) = strm.next().await {
-                if let Some(msg) = msg_opt {
-                    // Check is a "federate" command has been issued.
-                    if msg.topic() == self.topic
+                let sub_opts = vec![mqtt::SubscribeOptions::with_retain_as_published(); 2];
+                self.client.subscribe_many_with_options (
+                    &[self.topic.clone ()],
+                    &[mqtt::QOS_1],
+                    &sub_opts,
+                    None).await?;
+
+                #[cfg(feature = "print_log")]
+                println! ("state_monitoring_loop - LOOP");
+
+                // Just loop on incoming messages.
+                while let Some (msg_opt) = strm.next ().await
+                {
+                    if let Some (msg) = msg_opt
                     {
-                        // Parse the received message. 
-                        let node_state = msg.payload_str().parse::<NodeState>().expect("msg");
-
-                        // The update the NodeState object within ApplicationState. 
+                        // Check is a "federate" command has been issued.
+                        if msg.topic () == self.topic
                         {
-                            application_state.lock().unwrap().update_node_state(node_state.get_coord());
-                        }
 
+                            #[cfg(feature = "print_log")]
+                            println! ("state_monitoring_loop - message ARRIVED");
+
+                            // Parse the received message.
+                            let node_state = msg.payload_str ().parse::<NodeState> ()
+                                .expect ("msg");
+
+                            // The update the NodeState object within ApplicationState.
+                            {
+                                application_state.lock ().unwrap ().set_node_state (node_state.get_coord ());
+                            }
+
+                            #[cfg(feature = "print_log")]
+                            println! ("state_monitoring_loop - message ELABORATED");
+
+                        }
                     }
                 }
-            }
-            
-            // Explicit return type for the async block. 
-            Ok::<(), mqtt::Error>(())
+
+                // Explicit return type for the async block.
+                Ok::<(), mqtt::Error> (())
         }) 
         {
-           eprintln!("Error creating the client: {:?}", err);
+           eprintln! ("state_monitoring_loop - error creating the client: {:?}", err);
         }
     }
 }
