@@ -9,19 +9,21 @@ mod requests_coordination_loop;
 mod admm_solver;
 mod sporadic_server;
 
-/// Example of invocation: ./app_lev_orc 192.168.1.2:80 0 0 (2.15,9.8) 2
+/// Example of invocation: ./app_lev_orc 4 192.168.1.2:80 0 0 (2.15,9.8) 2
 fn main ()
 {
     // Parse input arguments.
     let args: Vec<String> = std::env::args ().collect ();
-    let node_address      : String = args[1].to_string ();
-    let node_index        : usize = args[2].parse::<usize > ()
+    let node_number       : usize = args[1].parse::<usize > ()
+        .expect ( "Unable to parse node number. " );
+    let node_address      : String = args[2].to_string ();
+    let node_index        : usize = args[3].parse::<usize > ()
         .expect ( "Unable to parse node index. " );
-    let application_index : usize = args[3].parse::<usize > ()
+    let application_index : usize = args[4].parse::<usize > ()
         .expect( "Unable to parse application index. " );
-    let node_state        : state::NodeState = args[4].parse::<state::NodeState> ()
+    let node_state        : state::NodeState = args[5].parse::<state::NodeState> ()
         .expect("Unable to parse into NodeState. ");
-    let affinity          : usize = args[5].parse::<usize> ()
+    let affinity          : usize = args[6].parse::<usize> ()
         .expect ( "Unable to parse affinity. " );
 
     // Node data. 
@@ -58,7 +60,8 @@ fn main ()
                                                       20,
                                                       affinity);
     let mut requests_coordination_loop =
-        requests_coordination_loop::ControlSystem::new (application_index,
+        requests_coordination_loop::ControlSystem::new (node_number,
+                                                        application_index,
                                                         node_index,
                                                         node_address.to_string (),
                                                         affinity);

@@ -90,7 +90,7 @@ pub struct ControlSystem
 impl ControlSystem
 {
 
-    pub fn new (application_index: usize, node_index: usize, ip_and_port: String, affinity: usize) -> Self
+    pub fn new (node_number: usize, application_index: usize, node_index: usize, ip_and_port: String, affinity: usize) -> Self
     {
 
         #[cfg(feature = "print_log")]
@@ -134,7 +134,7 @@ impl ControlSystem
                  format! ("federation/src/{}", node_index).to_string (),
                  format! ("federation/dst/{}", node_index).to_string (),
                  "disconnect".to_string ()],
-            node_number     : 4,
+            node_number,
             node_index,
             ss_affinity     : affinity,
             application_index,
