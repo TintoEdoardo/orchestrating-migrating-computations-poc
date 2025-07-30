@@ -152,6 +152,10 @@ impl LocalSolver
     pub fn local_dual_update (&mut self)
     {
         self.dual = self.dual + (self.local - self.global);
+
+        #[cfg(feature = "print_log")]
+        println! ("requests_coordination_loop - local_dual_update - dual = {}", self.dual);
+
     }
 }
 
@@ -251,9 +255,6 @@ impl GlobalSolver
             v.push (self.locals.x[i]);
         }
 
-        #[cfg(feature = "print_log")]
-        println! ("requests_coordination_loop - global_z_updater - v = {:?}", self.globals.z);
-
         // Produce the subtrahend in the z-update.
         let subt = (1f32 / v.len () as f32) * (v.iter ().sum::<f32> () - 1f32);
 
@@ -284,6 +285,9 @@ impl GlobalSolver
         let result: bool;
         if self.iteration > self.iteration_limit
         {
+            #[cfg(feature = "print_log")]
+            println! ("requests_coordination_loop - ITERATION LIMIT REACHED");
+
             result = true;
         }
         else
