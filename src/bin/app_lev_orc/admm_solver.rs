@@ -216,6 +216,10 @@ impl GlobalSolver
     {
         self.locals.x[src] = sum;
         self.received_locals.insert (src);
+
+        #[cfg(feature = "print_log")]
+        println! ("requests_coordination_loop - add_local_sum - x[src] = {}", self.locals.x[src]);
+
     }
 
     pub fn locals_len (&self) -> usize
@@ -285,10 +289,12 @@ impl GlobalSolver
         else
         {
             let mut has_converged = true;
-            let sum : f32 = self.globals.z.iter ().sum ();
-            if (sum - 1.0).abs () > TOLERANCE
+            for z in self.globals.z.iter ()
             {
-                has_converged = false;
+                if (z - 1.0).abs () > TOLERANCE && (z - 0.0).abs () > TOLERANCE
+                {
+                    has_converged = false;
+                }
             }
             result = has_converged;
         }

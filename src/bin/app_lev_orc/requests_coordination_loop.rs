@@ -272,7 +272,7 @@ impl ControlSystem
                     {
 
                         #[cfg(feature = "print_log")]
-                        println! ("requests_coordination_loop - federation/local_update LOCAL");
+                        println! ("requests_coordination_loop - federation/local_update LOCAL {:?}", msg.payload_str ());
 
                         // Parse the received message. 
                         let message_local = 
