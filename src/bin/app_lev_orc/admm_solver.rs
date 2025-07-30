@@ -296,6 +296,10 @@ impl GlobalSolver
                     has_converged = false;
                 }
             }
+            if (self.globals.z.iter ().sum::<f32> () - 1.0).abs () > TOLERANCE
+            {
+                has_converged = false;
+            }
             result = has_converged;
         }
         result
