@@ -53,7 +53,7 @@ impl ControlSystem
         Self
         {
             client,
-            topic : "node_state".to_string (),
+            topic : format! ("node_state_{}", node_index).to_string (),
         }
     
     }
@@ -102,7 +102,7 @@ impl ControlSystem
                 {
                     if let Some (msg) = msg_opt
                     {
-                        // Check is a "federate" command has been issued.
+                        // Check if a "federate" command has been issued.
                         if msg.topic () == self.topic
                         {
 

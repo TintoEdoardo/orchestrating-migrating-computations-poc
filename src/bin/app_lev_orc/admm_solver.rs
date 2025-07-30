@@ -114,7 +114,7 @@ impl LocalSolver
             distance * local + (penalty / 2f32) * (local - global + dual).powf (2f32)
         }
 
-        let distance : f32 = 
+        let distance: f32 =
             ((desired_coord.get_x () - self.coordinate.get_x ()).powi (2) + (desired_coord.get_y () - self.coordinate.get_y ()).powi (2)).sqrt ();
 
         let local_at_0 =
@@ -166,7 +166,7 @@ pub struct GlobalSolver
     /// z = { z_i } in the model.
     globals   : Globals,
 
-    /// u = { u_i } in the model.
+    // u = { u_i } in the model.
     // duals     : DualsVariables,
 
     /// Cumulative x_+_u = {x_i + u_i}.
