@@ -214,7 +214,7 @@ impl GlobalSolver
 
     pub fn add_local_sum (&mut self, sum: f32, src: usize)
     {
-        self.locals.x.insert (src,sum);
+        self.locals.x[src] = sum;
         self.received_locals.insert (src);
     }
 
