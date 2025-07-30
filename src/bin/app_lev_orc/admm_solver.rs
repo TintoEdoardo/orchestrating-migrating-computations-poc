@@ -236,6 +236,10 @@ impl GlobalSolver
     /// Update the global variable z.
     pub fn global_z_updater (&mut self)
     {
+
+        #[cfg(feature = "print_log")]
+        println! ("requests_coordination_loop - global_z_updater - x = {:?}", self.locals.x);
+
         // Compute the vector v.
         let mut v : Vec<f32> = Vec::new ();
         for i in 0..self.locals.x.len ()
@@ -243,8 +247,14 @@ impl GlobalSolver
             v.push (self.locals.x[i]);
         }
 
+        #[cfg(feature = "print_log")]
+        println! ("requests_coordination_loop - global_z_updater - v = {:?}", self.globals.z);
+
         // Produce the subtrahend in the z-update.
         let subt = (1f32 / v.len () as f32) * (v.iter ().sum::<f32> () - 1f32);
+
+        #[cfg(feature = "print_log")]
+        println! ("requests_coordination_loop - global_z_updater - subt = {}", subt);
 
         // Update the global variables.
         for i in 0..self.globals.z.len ()
@@ -253,7 +263,7 @@ impl GlobalSolver
         }
 
         #[cfg(feature = "print_log")]
-        println!("requests_coordination_loop - global_z_updater = [{:?}]", self.globals.z);
+        println! ("requests_coordination_loop - global_z_updater - z = {:?}", self.globals.z);
 
         // Update the iteration index.
         self.iteration += 1;
