@@ -343,7 +343,7 @@ impl ApplicationState
     }
 
     #[allow(dead_code)]
-    pub fn read_node_state (self) -> NodeState
+    pub fn get_node_state (self) -> NodeState
     {
         self.node_state.clone ()
     }
@@ -353,10 +353,10 @@ impl ApplicationState
         self.node_state.set_coords (coord);
     }
 
-    #[allow(dead_code)]
     pub fn add_request (&mut self, request : Request)
     {
         self.requests.push (request);
+        self.number_of_requests += 1;
     }
 
     pub fn remove_request (&mut self, request_index : usize)
@@ -370,6 +370,7 @@ impl ApplicationState
             }
         }
         self.requests.remove (local_index);
+        self.number_of_requests -= 1;
     }
 
     #[allow(dead_code)]

@@ -7,8 +7,7 @@ use futures::{executor::block_on, stream::StreamExt};
 use std::io::{Read, Write};
 use walkdir::WalkDir;
 use crate::{admm_solver::{GlobalSolver, LocalSolver},
-            state::{ApplicationState, Coord, NodeState, Request},
-            sporadic_server};
+            state::{ApplicationState, Coord, NodeState, Request}};
 
 /// This is the message sent through MQTT containing
 /// the local update in the ADMM algorithm.
@@ -73,8 +72,8 @@ pub struct ControlSystem
     /// The index of the node.
     node_index        : usize,
 
-    /// Affinity for the sporadic server.
-    ss_affinity       : usize,
+    // Affinity for the sporadic server.
+    // ss_affinity       : usize,
 
     /// The index of the application.
     application_index : usize,
@@ -90,7 +89,7 @@ pub struct ControlSystem
 impl ControlSystem
 {
 
-    pub fn new (node_number: usize, application_index: usize, node_index: usize, ip_and_port: String, affinity: usize) -> Self
+    pub fn new (node_number: usize, application_index: usize, node_index: usize, ip_and_port: String) -> Self
     {
 
         #[cfg(feature = "print_log")]
@@ -136,7 +135,7 @@ impl ControlSystem
                  "disconnect".to_string ()],
             node_number,
             node_index,
-            ss_affinity     : affinity,
+            // ss_affinity     : affinity,
             application_index,
             penalty         : 20.0,
             iteration_limit : 20,
@@ -146,7 +145,8 @@ impl ControlSystem
     /// Start the request coordination loop implementing the
     /// ADMM consensus algorithm. 
     pub fn start (&mut self,
-                  application_state : std::sync::Arc<std::sync::Mutex<ApplicationState>>)
+                  application_state : std::sync::Arc<std::sync::Mutex<ApplicationState>>,
+                  barrier           : std::sync::Arc<(std::sync::Mutex<u8>, std::sync::Condvar)>)
     {
 
         #[cfg(feature = "print_log")]
@@ -370,9 +370,15 @@ impl ControlSystem
                                         let mut state =
                                             application_state.lock ().unwrap ();
                                         state.remove_request (request.get_index ());
-                                        state.number_of_requests -= 1;
                                         drop (state);
                                     }
+
+                                    // Then, update the barrier for the sporadic server.
+                                    {
+                                        let (number_of_requests, _barrier) = &*barrier;
+                                        *number_of_requests.lock().unwrap () -= 1;
+                                    }
+
                                     incoming_request = None;
 
                                     // Compress the folder of the request.
@@ -479,8 +485,7 @@ impl ControlSystem
                                     {
                                         let mut state =
                                             application_state.lock ().unwrap ();
-                                        state.requests.push (request);
-                                        state.number_of_requests += 1;
+                                        state.add_request (request);
                                         drop (state);
                                     }
 
@@ -579,22 +584,14 @@ impl ControlSystem
                                         }
                                     }
 
-                                    let request_dir =
-                                        format! ("/requests/{}_{}_req", self.application_index, request.get_index ());
+                                    // Finally, update the barrier of the sporadic server.
+                                    {
+                                        let (number_of_requests, _barrier) = &*barrier;
+                                        *number_of_requests.lock().unwrap () += 1;
+                                    }
 
-                                    // Run the request as a separate thread.
-                                    let app_state = application_state.clone ();
-                                    let affinity = self.ss_affinity.clone ();
-                                    let handle = std::thread::spawn(move ||
-                                        {
-                                            let server : sporadic_server::ControlSystem =
-                                                sporadic_server::ControlSystem::new
-                                                    (request_dir.to_string (), app_state, request.get_index ());
-                                            server.initialize (10, affinity);
-                                            server.start();
-                                        });
-                                    handle.join ().unwrap ();
-
+                                    // This final instruction allows the node to start a new
+                                    // ADMM execution.
                                     incoming_request = None;
                                 }
                             None =>

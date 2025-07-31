@@ -9,7 +9,7 @@ mod requests_coordination_loop;
 mod admm_solver;
 mod sporadic_server;
 
-/// Example of invocation: ./app_lev_orc 4 192.168.1.2:80 0 0 (2.15,9.8) 2
+/// Example of invocation: ./app_lev_orc 4 192.168.1.2:8080 0 0 (2.15,9.8) 2
 fn main ()
 {
     // Parse input arguments.
@@ -35,7 +35,13 @@ fn main ()
             std::sync::Mutex::new (
                 state::ApplicationState::new (node_coords)));
 
-    // First activation (10ms in the future). 
+    // Initialize the sporadic server barrier.
+    // The first element refers to the number of requests
+    // waiting to be served.
+    let barrier : std::sync::Arc<(std::sync::Mutex<u8>, std::sync::Condvar)> =
+        std::sync::Arc::new ((std::sync::Mutex::new (0), std::sync::Condvar::new ()));
+
+    // First activation (10ms in the future).
     let mut first_activation : libc::timespec = unsafe { std::mem::zeroed () };
     unsafe
         {
@@ -63,8 +69,12 @@ fn main ()
         requests_coordination_loop::ControlSystem::new (node_number,
                                                         application_index,
                                                         node_index,
-                                                        node_address.to_string (),
-                                                        affinity);
+                                                        node_address.to_string ());
+    let mut sporadic_server                         =
+        sporadic_server::ControlSystem::new (application_index,
+                                             20,
+                                             affinity,
+                                             "requests".to_string ());
 
     // Start each task. 
     let mut handles = vec![];
@@ -85,16 +95,26 @@ fn main ()
     handles.push (rml_handle);
 
     let rcl_app_state = std::sync::Arc::clone (&application_state);
+    let rcl_barrier = std::sync::Arc::clone (&barrier);
     let rcl_handle = std::thread::spawn(move ||
         {
-            requests_coordination_loop.start (rcl_app_state);
+            requests_coordination_loop.start (rcl_app_state, rcl_barrier);
         }
     );
     handles.push (rcl_handle);
 
+    let ss_app_state = std::sync::Arc::clone (&application_state);
+    let ss_barrier = std::sync::Arc::clone (&barrier);
+    let ss_handle = std::thread::spawn (move ||
+        {
+            sporadic_server.start (ss_app_state, ss_barrier);
+        }
+    );
+    handles.push (ss_handle);
+
     for handle in handles
     {
-        handle.join ().unwrap();
+        handle.join ().unwrap ();
     }
     // End of main. 
 }
