@@ -487,6 +487,7 @@ impl ControlSystem
                                         let n = compressed_file.read (&mut buffer)?;
                                         if n == 0
                                         {
+                                            writer.shutdown (std::net::Shutdown::Both)?;
                                             break;
                                         }
                                         writer.write_all (&buffer[..n])?;
