@@ -309,6 +309,10 @@ impl ControlSystem
                                         {
                                             if src == self.node_index
                                             {
+
+                                                #[cfg(feature = "print_log")]
+                                                println! ("requests_coordination_loop - src == self.node_index");
+
                                                 // Send your address to the destination node.
                                                 let msg = mqtt::Message::new (
                                                     format! ("federation/dst/{}", dest_node.expect ("Missing dst node. ")),
@@ -504,6 +508,9 @@ impl ControlSystem
                                     let listener =
                                         std::net::TcpListener::bind ("localhost:8080")
                                         .expect ("Unable to bind to address");
+
+                                    #[cfg(feature = "print_log")]
+                                    println! ("requests_coordination_loop - prepare message for Node {}", src_node.unwrap_or(999));
 
                                     // Notify the sender that you are ready.
                                     let msg = mqtt::Message::new (
