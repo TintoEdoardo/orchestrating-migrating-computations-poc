@@ -325,11 +325,16 @@ impl ControlSystem
                                                 }
                                                 else
                                                 {
+                                                    let dest_topic = format! ("{}/{}",
+                                                                              "federation/dst",
+                                                                              dest_node.expect ("Missing dst node. "));
+
+                                                    #[cfg(feature = "print_log")]
+                                                    println! ("requests_coordination_loop - dest_topic = {dest_topic}");
+
                                                     // Send your address to the destination node.
                                                     let msg = mqtt::Message::new (
-                                                        format! ("{}/{}",
-                                                                 self.topics[3],
-                                                                 dest_node.expect ("Missing dst node. ")),
+                                                        dest_topic,
                                                         self.ip_and_port.to_string (),
                                                         paho_mqtt::QOS_1);
                                                     self.client.publish (msg).await?;
@@ -528,7 +533,7 @@ impl ControlSystem
 
                                     // Open a TCP stream for receiving the data.
                                     let listener =
-                                        std::net::TcpListener::bind ("localhost:8080")
+                                        std::net::TcpListener::bind (self.ip_and_port.to_string ())
                                         .expect ("Unable to bind to address");
 
                                     #[cfg(feature = "print_log")]
