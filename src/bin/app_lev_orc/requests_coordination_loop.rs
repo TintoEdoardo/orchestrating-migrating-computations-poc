@@ -327,7 +327,9 @@ impl ControlSystem
                                                 {
                                                     // Send your address to the destination node.
                                                     let msg = mqtt::Message::new (
-                                                        format! ("federation/dst/{}", dest_node.expect ("Missing dst node. ")),
+                                                        format! ("{}/{}",
+                                                                 self.topics[3],
+                                                                 dest_node.expect ("Missing dst node. ")),
                                                         self.ip_and_port.to_string (),
                                                         paho_mqtt::QOS_1);
                                                     self.client.publish (msg).await?;
@@ -463,6 +465,10 @@ impl ControlSystem
                                     let dst = msg.payload_str ()
                                         .parse::<String> ()
                                         .expect ("Unable to parse message into String");
+
+                                    #[cfg(feature = "print_log")]
+                                    println! ("requests_coordination_loop - dst is {}", dst);
+
                                     let mut writer = std::net::TcpStream::connect (dst)
                                         .expect ("Unable to bind to address");
                                     let mut buffer = [0; 512];
@@ -522,18 +528,17 @@ impl ControlSystem
 
                                     // Open a TCP stream for receiving the data.
                                     let listener =
-                                        std::net::TcpListener::bind ("localhost:8081")
+                                        std::net::TcpListener::bind ("localhost:8080")
                                         .expect ("Unable to bind to address");
 
                                     #[cfg(feature = "print_log")]
                                     println! ("requests_coordination_loop - prepare message for Node {}", src_node.unwrap_or(999));
 
-                                    // Notify the sender that you are ready.
+                                    // Prepare the message to signal the sender that you are ready.
                                     let msg = mqtt::Message::new (
                                         format! ("federation/src/{}", src_node.expect ("Missing src node. ")),
                                         self.ip_and_port.to_string (),
                                         paho_mqtt::QOS_1);
-                                    self.client.publish (msg).await?;
 
                                     #[cfg(feature = "print_log")]
                                     println! ("requests_coordination_loop - START RECEIVING");
@@ -549,6 +554,8 @@ impl ControlSystem
                                         .create (true)
                                         .open (&compressed_file_name)
                                         .expect ("Unable to create compressed_file. ");
+
+                                    self.client.publish (msg).await?;
                                     for stream in listener.incoming () 
                                     {
                                         match stream 
