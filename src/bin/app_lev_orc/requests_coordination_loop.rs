@@ -571,6 +571,10 @@ impl ControlSystem
                                                     let mut buffer = [0; 512];
                                                     loop
                                                     {
+
+                                                        #[cfg(feature = "print_log")]
+                                                        println! ("requests_coordination_loop - NEW CHUNK");
+
                                                         let n = stream.read (&mut buffer)?;
                                                         compressed_file.write_all (&buffer[0..n])?;
                                                         if n == 0
