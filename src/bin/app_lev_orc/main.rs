@@ -8,6 +8,7 @@ mod requests_monitoring_loop;
 mod requests_coordination_loop;
 mod admm_solver;
 mod sporadic_server;
+mod configuration_loader;
 
 /// Example of invocation: ./app_lev_orc 4 192.168.1.2:8080 0 0 (2.15,9.8) 2
 fn main ()
@@ -34,6 +35,7 @@ fn main ()
         std::sync::Arc::new (
             std::sync::Mutex::new (
                 state::ApplicationState::new (node_coords)));
+    configuration_loader::load_requests (application_state.clone ());
 
     // Initialize the sporadic server barrier.
     // The first element refers to the number of requests

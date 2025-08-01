@@ -313,12 +313,25 @@ impl ControlSystem
                                                 #[cfg(feature = "print_log")]
                                                 println! ("requests_coordination_loop - src == self.node_index");
 
-                                                // Send your address to the destination node.
-                                                let msg = mqtt::Message::new (
-                                                    format! ("federation/dst/{}", dest_node.expect ("Missing dst node. ")),
-                                                    self.ip_and_port.to_string (),
-                                                    paho_mqtt::QOS_1);
-                                                self.client.publish (msg).await?;
+                                                if dest_node.expect("Destination node missing. ") == self.node_index
+                                                {
+
+                                                    #[cfg(feature = "print_log")]
+                                                    println! ("requests_coordination_loop - src == dest");
+
+                                                    // The migration is not convenient after all.
+                                                    // TODO: what to do here?
+
+                                                }
+                                                else
+                                                {
+                                                    // Send your address to the destination node.
+                                                    let msg = mqtt::Message::new (
+                                                        format! ("federation/dst/{}", dest_node.expect ("Missing dst node. ")),
+                                                        self.ip_and_port.to_string (),
+                                                        paho_mqtt::QOS_1);
+                                                    self.client.publish (msg).await?;
+                                                }
                                             }
                                         }
                                     _ => {
@@ -336,7 +349,7 @@ impl ControlSystem
 
                                 // Finally, do the local update and send it.
                                 local_solver.local_x_update (
-                                    incoming_request.expect ("Msg").get_desired_coord ());
+                                    incoming_request.unwrap ().get_desired_coord ());
 
                                 // Send x + u, note that the client will receive
                                 // its own message.
@@ -405,7 +418,10 @@ impl ControlSystem
                                             .compression_method (method)
                                             .unix_permissions (0o755);
 
-                                    let walkdir : WalkDir           = walkdir::WalkDir::new ("requests");
+                                    let request_folder = format! ("requests/{}_{}_req",
+                                                                  self.application_index,
+                                                                  request.get_index ());
+                                    let walkdir : WalkDir           = walkdir::WalkDir::new (request_folder);
                                     let it      : walkdir::IntoIter = walkdir.into_iter ();
                                     let mut buffer : Vec<u8>        = Vec::new ();
                                     for entry_result in it
@@ -506,7 +522,7 @@ impl ControlSystem
 
                                     // Open a TCP stream for receiving the data.
                                     let listener =
-                                        std::net::TcpListener::bind ("localhost:8080")
+                                        std::net::TcpListener::bind ("localhost:8081")
                                         .expect ("Unable to bind to address");
 
                                     #[cfg(feature = "print_log")]
