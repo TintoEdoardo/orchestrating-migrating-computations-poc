@@ -381,6 +381,9 @@ impl ControlSystem
 
                                     incoming_request = None;
 
+                                    #[cfg(feature = "print_log")]
+                                    println! ("requests_coordination_loop - incoming_request = None");
+
                                     // Compress the folder of the request.
                                     let compressed_file_name =
                                         format! ("{}_{}_req.zip", self.application_index, request.get_index ());
@@ -433,6 +436,9 @@ impl ControlSystem
                                     zip.finish ()
                                         .expect ("Unable to finish file (zip). ");
 
+                                    #[cfg(feature = "print_log")]
+                                    println! ("requests_coordination_loop - FILE COMPRESSED");
+
                                     // Connect to the listener.
                                     let dst = msg.payload_str ()
                                         .parse::<String> ()
@@ -454,6 +460,9 @@ impl ControlSystem
                                         }
                                         writer.write_all (&buffer[..n])?;
                                     }
+
+                                    #[cfg(feature = "print_log")]
+                                    println! ("requests_coordination_loop - END TRANSMISSION");
 
                                     // Remove the directory corresponding to the request.
                                     /* let request_dir =
@@ -503,6 +512,9 @@ impl ControlSystem
                                         paho_mqtt::QOS_1);
                                     self.client.publish (msg).await?;
 
+                                    #[cfg(feature = "print_log")]
+                                    println! ("requests_coordination_loop - START RECEIVING");
+
                                     // Connect to the src and receive the data (or
                                     // wait for it).
                                     let compressed_file_name =
@@ -538,6 +550,9 @@ impl ControlSystem
                                                 }
                                         }
                                     }
+
+                                    #[cfg(feature = "print_log")]
+                                    println! ("requests_coordination_loop - compressed FILE RECEIVED");
 
                                     // Then decompress the file as a folder.
                                     let fname : &std::path::Path =
@@ -584,6 +599,9 @@ impl ControlSystem
                                         }
                                     }
 
+                                    #[cfg(feature = "print_log")]
+                                    println! ("requests_coordination_loop - FILE DECOMPRESSED");
+
                                     // Finally, update the barrier of the sporadic server.
                                     {
                                         let (number_of_requests, _barrier) = &*barrier;
@@ -593,6 +611,10 @@ impl ControlSystem
                                     // This final instruction allows the node to start a new
                                     // ADMM execution.
                                     incoming_request = None;
+
+                                    #[cfg(feature = "print_log")]
+                                    println! ("requests_coordination_loop - incoming_request = None");
+
                                 }
                             None =>
                                 {
