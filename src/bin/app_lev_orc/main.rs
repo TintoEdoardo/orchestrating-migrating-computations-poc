@@ -40,8 +40,10 @@ fn main ()
     // Initialize the sporadic server barrier.
     // The first element refers to the number of requests
     // waiting to be served.
+    let number_of_requests = application_state.lock ().unwrap ().number_of_requests;
     let barrier : std::sync::Arc<(std::sync::Mutex<u8>, std::sync::Condvar)> =
-        std::sync::Arc::new ((std::sync::Mutex::new (0), std::sync::Condvar::new ()));
+        std::sync::Arc::new (
+            (std::sync::Mutex::new (number_of_requests as u8), std::sync::Condvar::new ()));
 
     // First activation (10ms in the future).
     let mut first_activation : libc::timespec = unsafe { std::mem::zeroed () };

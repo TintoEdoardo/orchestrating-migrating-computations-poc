@@ -72,6 +72,10 @@ impl ControlSystem
             // pending, wait until notified.
             {
                 let (number_of_requests, barrier) = &*barrier;
+
+                #[cfg(feature = "print_log")]
+                println! ("sporadic_server - number of requests = {}", number_of_requests.lock ().unwrap ());
+
                 let _guard =
                     barrier.wait_while (number_of_requests.lock ().unwrap (),
                                         |n_requests|

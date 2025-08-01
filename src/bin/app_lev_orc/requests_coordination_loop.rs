@@ -5,7 +5,6 @@
 use paho_mqtt::{self as mqtt, MQTT_VERSION_5};
 use futures::{executor::block_on, stream::StreamExt};
 use std::io::{Read, Write};
-use walkdir::WalkDir;
 use crate::{admm_solver::{GlobalSolver, LocalSolver},
             state::{ApplicationState, Coord, NodeState, Request}};
 
@@ -409,59 +408,53 @@ impl ControlSystem
                                     println! ("requests_coordination_loop - incoming_request = None");
 
                                     // Compress the folder of the request.
-                                    let compressed_file_name =
+
+                                    let zip_archive_name =
                                         format! ("{}_{}_req.zip", self.application_index, request.get_index ());
-                                    let compressed_file = std::fs::OpenOptions::new ()
-                                        .append (true)
-                                        .write (true)
-                                        .read (true)
-                                        .create (true)
-                                        .open (&compressed_file_name)
-                                        .expect ("Unable to create compressed_file. ");
-                                    let mut zip = zip::ZipWriter::new (compressed_file);
-                                    let method = zip::CompressionMethod::Deflated;
-                                    let options =
-                                        zip::write::SimpleFileOptions::default ()
-                                            .compression_method (method)
-                                            .unix_permissions (0o755);
+                                    let zip_archive_path_str = format! ("requests/{}", zip_archive_name);
+                                    let zip_archive_path =
+                                        std::path::Path::new (&zip_archive_path_str);
+                                    let zip_archive = std::fs::File::create (&zip_archive_path).unwrap ();
 
-                                    let request_folder = format! ("requests/{}_{}_req",
-                                                                  self.application_index,
-                                                                  request.get_index ());
-                                    let walkdir : WalkDir           = walkdir::WalkDir::new (request_folder);
-                                    let it      : walkdir::IntoIter = walkdir.into_iter ();
-                                    let mut buffer : Vec<u8>        = Vec::new ();
-                                    for entry_result in it
+                                    let mut zip = zip::ZipWriter::new (zip_archive);
+
+                                    // The files that might be compressed (memories are optional).
+                                    let files_to_compress: Vec<std::path::PathBuf> = vec![
+                                        std::path::PathBuf::from ("module.wasm"),
+                                        std::path::PathBuf::from ("main_memory.b"),
+                                        std::path::PathBuf::from ("checkpoint_memory.b")
+                                    ];
+
+                                    let options: zip::write::FileOptions<()> = zip::write::FileOptions::default ()
+                                        .compression_method (zip::CompressionMethod::DEFLATE);
+
+                                    for file_path in &files_to_compress
                                     {
-                                        let entry = entry_result.unwrap ();
-                                        let path = entry.path ();
-                                        let name = path.strip_prefix ("requests").unwrap ();
-                                        let path_as_string = name
-                                            .to_str ()
-                                            .map (str::to_owned)
-                                            .expect ("Failed to get path_as_string. ");
+                                        let file = std::fs::File::open (file_path);
+                                        match file
+                                        {
+                                            Ok(mut file) =>
+                                                {
+                                                    // Rather ugly, but.
+                                                    let file_name =
+                                                        file_path.file_name ().unwrap ()
+                                                            .to_str ().unwrap ();
 
-                                        if path.is_file ()
-                                        {
-                                            #[cfg(feature = "print_log")]
-                                            println! ("requests_coordination_loop - zip.start_file {path:?} as {name:?}");
-                                            zip.start_file (path_as_string, options)
-                                                .expect ("Unable to start_file (zip). ");
-                                            let mut f = std::fs::File::open (path)?;
-                                            f.read_to_end (&mut buffer)?;
-                                            zip.write_all (&buffer)?;
-                                            buffer.clear ();
-                                        }
-                                        else if !name.as_os_str ().is_empty ()
-                                        {
-                                            #[cfg(feature = "print_log")]
-                                            println! ("requests_coordination_loop - zip.add_directory {path_as_string:?} as {name:?} ...");
-                                            zip.add_directory (path_as_string, options)
-                                                .expect ("Unable to add_directory (zip). ");
+                                                    zip.start_file (file_name, options).unwrap ();
+
+                                                    let mut buffer = Vec::new ();
+                                                    file.read_to_end (&mut buffer).unwrap ();
+
+                                                    zip.write_all (&buffer).unwrap ();
+                                                }
+                                            Err(_) =>
+                                                {
+                                                    // The file is missing, proceed.
+                                                    continue;
+                                                }
                                         }
                                     }
-                                    zip.finish ()
-                                        .expect ("Unable to finish file (zip). ");
+                                    zip.finish ().unwrap ();
 
                                     #[cfg(feature = "print_log")]
                                     println! ("requests_coordination_loop - FILE COMPRESSED");
@@ -480,7 +473,7 @@ impl ControlSystem
                                     let mut compressed_file =
                                         std::fs::OpenOptions::new ()
                                             .read (true)
-                                            .open (&compressed_file_name)
+                                            .open (&zip_archive_path)
                                             .expect ("Unable to open compressed_file. ");
                                     loop
                                     {
