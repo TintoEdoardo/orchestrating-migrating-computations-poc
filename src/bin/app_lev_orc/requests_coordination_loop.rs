@@ -562,7 +562,7 @@ impl ControlSystem
                                         .expect ("Unable to create compressed_file. ");
 
                                     self.client.publish (msg).await?;
-                                    for stream in listener.incoming () 
+                                    'handle_connection: for stream in listener.incoming ()
                                     {
                                         match stream 
                                         {
@@ -578,9 +578,10 @@ impl ControlSystem
 
                                                         let n = stream.read (&mut buffer)?;
                                                         compressed_file.write_all (&buffer[0..n])?;
+
                                                         if n == 0
                                                         {
-                                                            break;
+                                                            break 'handle_connection;
                                                         }
                                                     }
                                                 }
