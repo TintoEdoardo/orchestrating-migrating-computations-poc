@@ -1,2 +1,2 @@
-# orchestrating-migrating-computations-poc
-Proof-of-concept for a system subject to real-time requirements where a portion of its jobs might migrate, at run-time, across nodes. 
+# Application-level Orchestrator
+Proof-of-Concept implementation of an application-level orchestrator supporting migrating requests. 
