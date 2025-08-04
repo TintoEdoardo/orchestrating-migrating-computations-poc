@@ -359,7 +359,7 @@ impl ControlSystem
                                 unsafe
                                     {
                                         libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut end_time);
-                                        let time_to_completion;
+                                        let time_to_completion : f64;
                                         let mut diff_sec = end_time.tv_sec - start_time.tv_sec;
                                         let mut diff_nsec = end_time.tv_nsec - start_time.tv_nsec;
                                         if diff_nsec < 0
@@ -367,7 +367,7 @@ impl ControlSystem
                                             diff_nsec += 1_000_000_000;
                                             diff_sec -= 1;
                                         }
-                                        time_to_completion = diff_sec * 1_000 + diff_nsec / 1_000_000;
+                                        time_to_completion = (diff_sec * 1_000) as f64 + (diff_nsec / 1_000_000) as f64;
                                         println! ("requests_coordination_loop - time_to_completion = {} ms",
                                                   time_to_completion);
                                     }
