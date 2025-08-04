@@ -95,7 +95,7 @@ impl ControlSystem
         println! ("requests_coordination_loop - new START");
 
         // Initialization.
-        let host = "mqtt://192.168.1.12:1883".to_string ();
+        let host = "mqtt://192.168.1.10:1883".to_string ();
 
         let client_id = format! ("node_{}_app_{}_rcl", node_index, application_index);
 
