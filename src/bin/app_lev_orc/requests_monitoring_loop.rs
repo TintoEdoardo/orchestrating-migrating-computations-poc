@@ -139,7 +139,7 @@ impl ControlSystem
 
             // Check if some requests need to migrate. 
             {
-                // Here we access the applicaiton state as mutable. 
+                // Here we access the application state as mutable.
                 let mut app_state = application_state.lock ().unwrap ();
                 let node_state = app_state.node_state;
                 let requests = &mut app_state.requests;

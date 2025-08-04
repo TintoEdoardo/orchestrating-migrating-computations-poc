@@ -193,6 +193,10 @@ impl ControlSystem
             let mut node_state       : NodeState;
             let mut dest_node        : Option<usize>;
 
+            #[cfg(feature = "timing_log")]
+            let mut start_time = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+            let mut end_time   = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+
             #[cfg(feature = "print_log")]
             println! ("requests_coordination_loop - LOOP");
 
@@ -207,6 +211,12 @@ impl ControlSystem
 
                         #[cfg(feature = "print_log")]
                         println! ("requests_coordination_loop - federation/migration MIGRATION");
+
+                        #[cfg(feature = "timing_log")]
+                        unsafe
+                            {
+                                libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut start_time);
+                            }
 
                         // Parse the received message. 
                         let message_request = 
@@ -344,6 +354,17 @@ impl ControlSystem
                                         panic! ("Src node unknown");
                                         }
                                 }
+
+                                #[cfg(feature = "timing_log")]
+                                unsafe
+                                    {
+                                        libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut end_time);
+                                        let time_to_completion =
+                                            (end_time.tv_sec - start_time.tv_sec) * 1_000 +
+                                                (end_time.tv_nsec - start_time.tv_nsec) / 1_000;
+                                        println! ("requests_coordination_loop - time_to_completion = {} ms",
+                                                  time_to_completion);
+                                    }
                             }
                             else
                             {
