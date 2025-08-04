@@ -144,7 +144,7 @@ impl ControlSystem
                     let mut result    : i32   = 0;
                     let request_index : usize = caller.data ().request_index;
 
-                    #[cfg(feature = "print_log")]
+                    #[cfg(feature = "periodic_activation")]
                     println! ("request {} - should_migrate START", request_index);
 
                     {
@@ -161,7 +161,7 @@ impl ControlSystem
                         drop (app_state);
                     }
 
-                    #[cfg(feature = "print_log")]
+                    #[cfg(feature = "periodic_activation")]
                     println! ("request {} - should_migrate END with {}", request_index, result);
 
                     result
@@ -199,14 +199,14 @@ impl ControlSystem
             let checkpoint_mem_export = module.get_export_index ("checkpoint_memory")
                 .expect("Unable to find checkpoint_mem_export. ");
 
-            #[cfg(feature = "print_log")]
+            #[cfg(feature = "periodic_activation")]
             let request_index = current_request.get_index ();
 
             // Add the restore_memory, which do nothing right now.
             linker.func_wrap ("host", "restore_memory", move |mut caller: wasmtime::Caller<'_, MyState>|
                 {
 
-                    #[cfg(feature = "print_log")]
+                    #[cfg(feature = "periodic_activation")]
                     println! ("request {} - restore_memory START", request_index);
 
                     let main_memory = match caller.get_module_export (&main_mem_export)
@@ -282,7 +282,7 @@ impl ControlSystem
                             }
                     }
 
-                    #[cfg(feature = "print_log")]
+                    #[cfg(feature = "periodic_activation")]
                     println! ("request {} - restore_memory END", request_index);
 
                 }
