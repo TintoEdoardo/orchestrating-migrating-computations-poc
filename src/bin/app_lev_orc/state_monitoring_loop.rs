@@ -17,14 +17,16 @@ pub struct ControlSystem
 
 impl ControlSystem
 {
-    pub fn new (application_index: usize, node_index: usize) -> Self
+    pub fn new (application_index: usize,
+                node_index       : usize,
+                broker_address   : String) -> Self
     {
 
         #[cfg(feature = "print_log")]
         println! ("state_monitoring_loop - new START");
 
         // Initialization. 
-        let host = "mqtt://192.168.1.10:1883".to_string ();
+        let host = format! ("mqtt//{}:1883", broker_address).to_string ();
 
         let client_id = format! ("node_{}_app_{}_sml", node_index, application_index);
 

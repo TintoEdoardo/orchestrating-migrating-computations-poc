@@ -88,14 +88,18 @@ pub struct ControlSystem
 impl ControlSystem
 {
 
-    pub fn new (node_number: usize, application_index: usize, node_index: usize, ip_and_port: String) -> Self
+    pub fn new (node_number      : usize,
+                application_index: usize,
+                node_index       : usize,
+                ip_and_port      : String,
+                broker_address   : String) -> Self
     {
 
         #[cfg(feature = "print_log")]
         println! ("requests_coordination_loop - new START");
 
         // Initialization.
-        let host = "mqtt://192.168.1.10:1883".to_string ();
+        let host = format! ("mqtt//{}:1883", broker_address).to_string ();
 
         let client_id = format! ("node_{}_app_{}_rcl", node_index, application_index);
 

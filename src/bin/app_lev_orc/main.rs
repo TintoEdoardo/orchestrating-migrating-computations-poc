@@ -10,7 +10,7 @@ mod admm_solver;
 mod sporadic_server;
 mod configuration_loader;
 
-/// Example of invocation: ./app_lev_orc 4 192.168.1.2:8080 0 0 (2.15,9.8) 2
+/// Example of invocation: ./app_lev_orc 4 192.168.1.2:8080 192.168.1.3 0 0 (2.15,9.8) 2
 fn main ()
 {
     // Parse input arguments.
@@ -18,13 +18,14 @@ fn main ()
     let node_number       : usize = args[1].parse::<usize > ()
         .expect ( "Unable to parse node number. " );
     let node_address      : String = args[2].to_string ();
-    let node_index        : usize = args[3].parse::<usize > ()
+    let broker_address    : String = args[3].to_string ();
+    let node_index        : usize = args[4].parse::<usize > ()
         .expect ( "Unable to parse node index. " );
-    let application_index : usize = args[4].parse::<usize > ()
+    let application_index : usize = args[5].parse::<usize > ()
         .expect( "Unable to parse application index. " );
-    let node_state        : state::NodeState = args[5].parse::<state::NodeState> ()
+    let node_state        : state::NodeState = args[6].parse::<state::NodeState> ()
         .expect("Unable to parse into NodeState. ");
-    let affinity          : usize = args[6].parse::<usize> ()
+    let affinity          : usize = args[7].parse::<usize> ()
         .expect ( "Unable to parse affinity. " );
 
     // Node data. 
@@ -61,19 +62,22 @@ fn main ()
     // Initialize the taskset. 
     let mut state_monitoring_loop      =
         state_monitoring_loop::ControlSystem::new (application_index,
-                                                   node_index);
+                                                   node_index,
+                                                   broker_address.clone());
     let mut requests_monitoring_loop   =
         requests_monitoring_loop::ControlSystem::new (node_index,
                                                       application_index,
                                                       100_000,
                                                       first_activation,
                                                       20,
-                                                      affinity);
+                                                      affinity,
+                                                      broker_address.clone());
     let mut requests_coordination_loop =
         requests_coordination_loop::ControlSystem::new (node_number,
                                                         application_index,
                                                         node_index,
-                                                        node_address.to_string ());
+                                                        node_address.to_string (),
+                                                        broker_address.clone());
     let mut sporadic_server                         =
         sporadic_server::ControlSystem::new (application_index,
                                              20,
