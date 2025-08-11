@@ -49,7 +49,7 @@ impl ControlSystem
         println! ("request_monitoring_loop - new START");
 
         // Initialization of the MQTT link.
-        let host = format! ("mqtt//{}:1883", broker_address).to_string ();
+        let host = format! ("mqtt://{}:1883", broker_address).to_string ();
 
         let client_id = format! ("node_{}_app_{}_rml", node_index, application_index);
 
