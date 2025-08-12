@@ -63,24 +63,28 @@ fn main ()
     let mut state_monitoring_loop      =
         state_monitoring_loop::ControlSystem::new (application_index,
                                                    node_index,
-                                                   broker_address.clone());
+                                                   20,
+                                                   affinity,
+                                                   broker_address.clone ());
     let mut requests_monitoring_loop   =
         requests_monitoring_loop::ControlSystem::new (node_index,
                                                       application_index,
-                                                      100_000,
+                                                      1_000,
                                                       first_activation,
                                                       20,
                                                       affinity,
-                                                      broker_address.clone());
+                                                      broker_address.clone ());
     let mut requests_coordination_loop =
         requests_coordination_loop::ControlSystem::new (node_number,
                                                         application_index,
                                                         node_index,
+                                                        20,
+                                                        affinity,
                                                         node_address.to_string (),
-                                                        broker_address.clone());
+                                                        broker_address.clone ());
     let mut sporadic_server                         =
         sporadic_server::ControlSystem::new (application_index,
-                                             20,
+                                             10,
                                              affinity,
                                              "requests".to_string ());
 

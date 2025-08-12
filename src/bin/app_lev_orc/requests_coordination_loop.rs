@@ -71,8 +71,11 @@ pub struct ControlSystem
     /// The index of the node.
     node_index        : usize,
 
-    // Affinity for the sporadic server.
-    // ss_affinity       : usize,
+    /// Priority of this task.
+    priority         : i32,
+
+    /// Affinity of the task.
+    affinity         : usize,
 
     /// The index of the application.
     application_index : usize,
@@ -91,6 +94,8 @@ impl ControlSystem
     pub fn new (node_number      : usize,
                 application_index: usize,
                 node_index       : usize,
+                priority         : i32,
+                affinity         : usize,
                 ip_and_port      : String,
                 broker_address   : String) -> Self
     {
@@ -139,6 +144,8 @@ impl ControlSystem
             node_number,
             node_index,
             // ss_affinity     : affinity,
+            priority,
+            affinity,
             application_index,
             penalty         : 20.0,
             iteration_limit : 20,
@@ -154,6 +161,25 @@ impl ControlSystem
 
         #[cfg(feature = "print_log")]
         println! ("requests_coordination_loop - INIT");
+
+        // Initialization.
+        unsafe
+            {
+
+                // Scheduling properties.
+                let tid = libc::gettid ();
+                let sched_param = libc::sched_param
+                {
+                    sched_priority: self.priority,
+                };
+                libc::sched_setscheduler (tid, libc::SCHED_FIFO, &sched_param);
+
+                // Affinity.
+                let mut cpuset : libc::cpu_set_t = std::mem::zeroed ();
+                libc::CPU_ZERO (&mut cpuset);
+                libc::CPU_SET (self.affinity, &mut cpuset);
+                libc::sched_setaffinity (tid, size_of::<libc::cpu_set_t> (), &mut cpuset);
+            }
 
         if let Err (err) = block_on (async {
 
@@ -391,7 +417,7 @@ impl ControlSystem
                                 // Send x + u, note that the client will receive
                                 // its own message.
                                 let local_sum =
-                                    local_solver.get_local() + local_solver.get_dual();
+                                    local_solver.get_local () + local_solver.get_dual ();
                                 let message_local = MessageLocal
                                 {
                                     src: self.node_index,
@@ -430,7 +456,7 @@ impl ControlSystem
                                     // Then, update the barrier for the sporadic server.
                                     {
                                         let (number_of_requests, _barrier) = &*barrier;
-                                        *number_of_requests.lock().unwrap () -= 1;
+                                        *number_of_requests.lock ().unwrap () -= 1;
                                     }
 
                                     incoming_request = None;
