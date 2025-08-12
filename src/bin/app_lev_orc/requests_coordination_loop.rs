@@ -695,8 +695,9 @@ impl ControlSystem
 
                                     // Finally, update the barrier of the sporadic server.
                                     {
-                                        let (number_of_requests, _barrier) = &*barrier;
-                                        *number_of_requests.lock().unwrap () += 1;
+                                        let (number_of_requests, barrier) = &*barrier;
+                                        *number_of_requests.lock ().unwrap () += 1;
+                                        barrier.notify_one ();
                                     }
 
                                     // This final instruction allows the node to start a new
