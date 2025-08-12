@@ -547,9 +547,9 @@ impl ControlSystem
                                     println! ("requests_coordination_loop - END TRANSMISSION");
 
                                     // Remove the directory corresponding to the request.
-                                    /* let request_dir =
+                                    let request_dir =
                                         format! ("/requests/{}_{}_req", self.application_index, request.get_index ());
-                                    std::fs::create_dir_all(request_dir).unwrap(); */
+                                    std::fs::create_dir_all(request_dir).unwrap();
                                 }
                             None =>
                                 {
@@ -623,11 +623,11 @@ impl ControlSystem
                                                     loop
                                                     {
 
-                                                        #[cfg(feature = "print_log")]
-                                                        println! ("requests_coordination_loop - NEW CHUNK");
-
                                                         let n = stream.read (&mut buffer)?;
                                                         compressed_file.write_all (&buffer[0..n])?;
+
+                                                        #[cfg(feature = "print_log")]
+                                                        println! ("requests_coordination_loop - NEW CHUNK of size {}", n);
 
                                                         if n == 0
                                                         {
@@ -653,6 +653,9 @@ impl ControlSystem
 
                                     let mut archive =
                                         zip::ZipArchive::new (file).unwrap ();
+
+                                    #[cfg(feature = "print_log")]
+                                    println! ("requests_coordination_loop - archive len = {}", archive.len ());
 
                                     for i in 0..archive.len ()
                                     {
