@@ -476,10 +476,16 @@ impl ControlSystem
                                     let mut zip = zip::ZipWriter::new (zip_archive);
 
                                     // The files that might be compressed (memories are optional).
+                                    let path_to_req_dir = format! ("requests/{}_{}_req/",
+                                                                   self.application_index,
+                                                                   request.get_index ());
+                                    let module_path = format! ("{}/module.wasm", path_to_req_dir);
+                                    let main_mem_path = format! ("{}/main_memory.b", path_to_req_dir);
+                                    let checkpoint_mem_path = format! ("{}/checkpoint_memory.b", path_to_req_dir);
                                     let files_to_compress: Vec<std::path::PathBuf> = vec![
-                                        std::path::PathBuf::from ("module.wasm"),
-                                        std::path::PathBuf::from ("main_memory.b"),
-                                        std::path::PathBuf::from ("checkpoint_memory.b")
+                                        std::path::PathBuf::from (module_path),
+                                        std::path::PathBuf::from (main_mem_path),
+                                        std::path::PathBuf::from (checkpoint_mem_path)
                                     ];
 
                                     let options: zip::write::FileOptions<()> = zip::write::FileOptions::default ()
@@ -496,6 +502,9 @@ impl ControlSystem
                                                     let file_name =
                                                         file_path.file_name ().unwrap ()
                                                             .to_str ().unwrap ();
+
+                                                    #[cfg(feature = "print_log")]
+                                                    println! ("requests_coordination_loop - COMPRESSING = {}", file_name);
 
                                                     zip.start_file (file_name, options).unwrap ();
 
