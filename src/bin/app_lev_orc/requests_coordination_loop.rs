@@ -549,7 +549,7 @@ impl ControlSystem
                                     // Remove the directory corresponding to the request.
                                     let request_dir =
                                         format! ("/requests/{}_{}_req", self.application_index, request.get_index ());
-                                    std::fs::create_dir_all(request_dir).unwrap();
+                                    std::fs::remove_dir_all (request_dir).unwrap ();
                                 }
                             None =>
                                 {

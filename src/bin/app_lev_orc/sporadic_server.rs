@@ -328,7 +328,7 @@ impl ControlSystem
                 Ok (_) =>
                     {
                         // Remove the directory.
-                        // std::fs::remove_dir_all(path_to_req_folder).unwrap();
+                        std::fs::remove_dir_all (path_to_req_folder).unwrap ();
                         {
                             // Then remove the request from the list.
                             application_state
@@ -347,7 +347,7 @@ impl ControlSystem
                         else
                         {
                             // Remove the directory.
-                            // std::fs::remove_dir_all(path_to_req_folder).unwrap();
+                            std::fs::remove_dir_all (path_to_req_folder).unwrap ();
                             {
                                 // Then remove the request from the list.
                                 application_state
