@@ -256,9 +256,8 @@ impl std::str::FromStr for Request
                 required_memory = u32::from_str(req_memory)
                     .expect ("Unable to convert req_memory to u32");
 
-                desired_coord   = NodeState::from_str(des_coord)
-                        .expect ("Unable to convert des_coord to Coord")
-                        .node_coords; // This is atrocious, correct: TODO!
+                desired_coord   = Coord::from_str(des_coord)
+                        .expect ("Unable to convert des_coord to Coord");
 
                 threshold       = f32::from_str(thresh)
                     .expect ("Unable to convert thresh to f32");
