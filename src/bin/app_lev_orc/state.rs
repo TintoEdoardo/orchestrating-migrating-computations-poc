@@ -113,7 +113,7 @@ impl std::str::FromStr for NodeState
     fn from_str (s: &str) -> Result<Self, Self::Err>
     {
         let trimmed_s = s.replace ('[', "").replace (']', "");
-        let fields : Vec<&str> = trimmed_s.split_terminator (',').collect ();
+        let fields : Vec<&str> = trimmed_s.split_terminator (';').collect ();
 
         match (fields.first(), fields.last())
         {
