@@ -152,7 +152,7 @@ impl ControlSystem
             affinity,
             application_index,
             penalty         : 20.0,
-            etc_multiplier  : 0.5,
+            etc_multiplier  : 0.05,
             iteration_limit : 20,
         }
     }
