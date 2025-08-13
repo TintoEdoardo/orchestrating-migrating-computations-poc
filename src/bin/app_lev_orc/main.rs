@@ -10,7 +10,7 @@ mod admm_solver;
 mod sporadic_server;
 mod configuration_loader;
 
-/// Example of invocation: ./app_lev_orc 4 192.168.1.2:8080 192.168.1.3 0 0 (2.15,9.8) 2
+/// Example of invocation: ./app_lev_orc 4 192.168.1.2:8080 192.168.1.3 0 0 (2.15,9.8) 1 2
 fn main ()
 {
     // Parse input arguments.
@@ -25,13 +25,12 @@ fn main ()
         .expect( "Unable to parse application index. " );
     let node_state        : state::NodeState = args[6].parse::<state::NodeState> ()
         .expect("Unable to parse into NodeState. ");
-    let node_speedup_factor: f32 = args[7].parse::<f32> ()
-        .expect("Unable to parse into f32 (for speedup factor). ");
-    let affinity           : usize = args[8].parse::<usize> ()
+    let affinity          : usize = args[7].parse::<usize> ()
         .expect ( "Unable to parse affinity. " );
 
     // Node data. 
     let node_coords : state::Coord = node_state.get_coord ();
+    let node_speedup_factor : f32 = node_state.get_speedup_factor ();
 
     // Initialize the application state. 
     let application_state: std::sync::Arc<std::sync::Mutex<state::ApplicationState>> =

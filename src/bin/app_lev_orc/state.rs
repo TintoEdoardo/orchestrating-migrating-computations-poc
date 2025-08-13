@@ -98,6 +98,11 @@ impl NodeState
     {
         self.node_coords
     }
+
+    pub fn get_speedup_factor (&self) -> f32
+    {
+        self.speedup_factor
+    }
 }
 
 impl std::str::FromStr for NodeState
