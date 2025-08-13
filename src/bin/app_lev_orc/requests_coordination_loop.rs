@@ -288,6 +288,9 @@ impl ControlSystem
                                         // Drop the value to force relinquishing the lock. 
                                         drop (state);
                                     }
+
+                                    #[cfg(feature = "print_log")]
+                                    println! ("requests_coordination_loop - request_etc = {}", request_etc);
     
                                     // Initialize the variables for a new execution. 
                                     incoming_request = Some (request);
