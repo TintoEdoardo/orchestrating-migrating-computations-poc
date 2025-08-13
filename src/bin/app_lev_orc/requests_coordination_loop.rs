@@ -563,6 +563,7 @@ impl ControlSystem
                                     println! ("requests_coordination_loop - REMOVE {}", request_dir);
 
                                     std::fs::remove_dir_all (request_dir).unwrap ();
+                                    std::fs::remove_file (zip_archive_path).unwrap ();
                                 }
                             None =>
                                 {
@@ -708,6 +709,9 @@ impl ControlSystem
                                             std::io::copy (&mut file, &mut outfile).unwrap ();
                                         }
                                     }
+
+                                    // Remove the archive after decompressing it.
+                                    std::fs::remove_file (fname).unwrap ();
 
                                     #[cfg(feature = "print_log")]
                                     println! ("requests_coordination_loop - FILE DECOMPRESSED");
