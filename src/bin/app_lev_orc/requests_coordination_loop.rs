@@ -557,7 +557,7 @@ impl ControlSystem
 
                                     // Remove the directory corresponding to the request.
                                     let request_dir =
-                                        format! ("/requests/{}_{}_req", self.application_index, request.get_index ());
+                                        format! ("requests/{}_{}_req", self.application_index, request.get_index ());
 
                                     #[cfg(feature = "print_log")]
                                     println! ("requests_coordination_loop - REMOVE {}", request_dir);
