@@ -30,7 +30,7 @@ fn main ()
 
     // Node data. 
     let node_coords : state::Coord = node_state.get_coord ();
-    let node_speedup_factor : f32 = node_state.get_speedup_factor ();
+    let node_speedup_factor : f32  = node_state.get_speedup_factor ();
 
     // Initialize the application state. 
     let application_state: std::sync::Arc<std::sync::Mutex<state::ApplicationState>> =
