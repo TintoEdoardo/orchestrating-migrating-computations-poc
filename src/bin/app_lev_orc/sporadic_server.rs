@@ -342,6 +342,9 @@ impl ControlSystem
                         let trap = *error.downcast_ref::<wasmtime::Trap> ().unwrap ();
                         if trap == wasmtime::Trap::UnreachableCodeReached
                         {
+                            #[cfg(feature = "print_log")]
+                            println! ("sporadic_server - CHECKPOINT occurred");
+
                             // Do nothing and pass to the next request.
                         }
                         else

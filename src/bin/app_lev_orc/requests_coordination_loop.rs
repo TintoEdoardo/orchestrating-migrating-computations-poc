@@ -558,6 +558,10 @@ impl ControlSystem
                                     // Remove the directory corresponding to the request.
                                     let request_dir =
                                         format! ("/requests/{}_{}_req", self.application_index, request.get_index ());
+
+                                    #[cfg(feature = "print_log")]
+                                    println! ("requests_coordination_loop - REMOVE {}", request_dir);
+
                                     std::fs::remove_dir_all (request_dir).unwrap ();
                                 }
                             None =>
@@ -666,12 +670,15 @@ impl ControlSystem
                                     #[cfg(feature = "print_log")]
                                     println! ("requests_coordination_loop - archive len = {}", archive.len ());
 
+                                    // Add the folder path.
+                                    let request_folder =
+                                        format! ("requests/{}_{}_req", self.application_index, request.get_index ());
                                     for i in 0..archive.len ()
                                     {
                                         let mut file = archive.by_index (i).unwrap ();
-                                        let outpath = match file.enclosed_name ()
+                                        let outpath : std::path::PathBuf= match file.enclosed_name ()
                                         {
-                                            Some (path) => path,
+                                            Some (path) => format! ("{}/{}", request_folder, path.display ()).into (),
                                             None => continue,
                                         };
 
