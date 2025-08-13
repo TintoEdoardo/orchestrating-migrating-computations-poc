@@ -25,7 +25,9 @@ fn main ()
         .expect( "Unable to parse application index. " );
     let node_state        : state::NodeState = args[6].parse::<state::NodeState> ()
         .expect("Unable to parse into NodeState. ");
-    let affinity          : usize = args[7].parse::<usize> ()
+    let node_speedup_factor: f32 = args[7].parse::<f32> ()
+        .expect("Unable to parse into f32 (for speedup factor). ");
+    let affinity           : usize = args[8].parse::<usize> ()
         .expect ( "Unable to parse affinity. " );
 
     // Node data. 
@@ -35,7 +37,7 @@ fn main ()
     let application_state: std::sync::Arc<std::sync::Mutex<state::ApplicationState>> =
         std::sync::Arc::new (
             std::sync::Mutex::new (
-                state::ApplicationState::new (node_coords)));
+                state::ApplicationState::new(node_coords, 100, 90, node_speedup_factor, 1_000_000)));
     configuration_loader::load_requests (application_state.clone ());
 
     // Initialize the sporadic server barrier.

@@ -1,6 +1,7 @@
 /*************************/
 /*         STATE         */
 /*************************/
+use std::fmt::{Display, Formatter};
 
 /// The main information used to determine the state of
 /// the system in this experimentation is the physical
@@ -36,6 +37,42 @@ impl Coord
     }
 }
 
+impl std::str::FromStr for Coord
+{
+    type Err = std::convert::Infallible;
+
+    /// The expected string: (f32,f32).
+    fn from_str(s: &str) -> Result<Self, Self::Err>
+    {
+        let trimmed_s = s.replace ('(', "").replace (')', "");
+        let coords : Vec<&str> = trimmed_s.split_terminator (',').collect ();
+
+        match (coords.first(), coords.last())
+        {
+            (Some (&x), Some (&y)) => Ok (
+                Coord
+                {
+                    x : f32::from_str (x).expect ("Failed to parse x coord. "),
+                    y : f32::from_str (y).expect ("Failed to parse y coord. ")
+                }
+            ),
+            _ => Ok (
+                Coord
+                {
+                    x : -1.0,
+                    y : -1.0
+                }
+            ),
+        }
+    }
+}
+
+impl Display for Coord
+{
+    fn fmt (&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write! (f, "{}", format! ("({},{})", self.x, self.y))
+    }
+}
 
 /// The state of the hosting node, as a set of
 /// coordinates corresponding to the position
@@ -43,7 +80,11 @@ impl Coord
 #[derive(PartialEq, Clone, Copy)]
 pub struct NodeState
 {
-    node_coords  : Coord,
+    /// Coordinates of the current node.
+    node_coords    : Coord,
+
+    /// Speedup factor with respect to a reference node.
+    speedup_factor : f32,
 }
 
 impl NodeState
@@ -63,19 +104,20 @@ impl std::str::FromStr for NodeState
 {
     type Err = std::convert::Infallible;
 
+    /// The expected string: [(f32,f32),f32]
     fn from_str (s: &str) -> Result<Self, Self::Err>
     {
-        let trimmed_s = s.replace ('(', "").replace (')', "");
-        let coords : Vec<&str> = trimmed_s.split_terminator (',').collect ();
+        let trimmed_s = s.replace ('[', "").replace (']', "");
+        let fields : Vec<&str> = trimmed_s.split_terminator (',').collect ();
 
-        match (coords.first(), coords.last())
+        match (fields.first(), fields.last())
         {
-            (Some (&x), Some (&y)) => Ok (
-                NodeState {
-                    node_coords: Coord { 
-                        x : f32::from_str (x).expect ("Failed to parse x coord. "),
-                        y : f32::from_str (y).expect ("Failed to parse y coord. ")}
-                    }
+            (Some (&coord), Some (&speedup_factor)) => Ok (
+                NodeState
+                {
+                    node_coords   : coord.parse ().unwrap (),
+                    speedup_factor: speedup_factor.parse ().unwrap (),
+                }
             ),
             _ => Ok (
                 NodeState
@@ -84,7 +126,8 @@ impl std::str::FromStr for NodeState
                     {
                         x : -1.0,
                         y : -1.0
-                    }
+                    },
+                    speedup_factor: f32::MAX,
                 }
             ),
         }
@@ -159,6 +202,11 @@ impl Request
     pub fn get_index(&self) -> usize
     {
         self.index
+    }
+
+    pub fn get_execution_time(&self) -> u32
+    {
+        self.execution_time
     }
 }
 
@@ -322,23 +370,51 @@ pub fn should_migrate (request : &Request, node_state : &NodeState) -> bool
 #[derive(Clone)]
 pub struct ApplicationState
 {
-    // Node-related fields.
+    /// Node-related fields.
     pub node_state : NodeState,
 
-    // Application-related fields.
+    /// Period of the sporadic server associated to
+    /// this application, in milliseconds.
+    pub sporadic_server_t  : u32,
+
+    /// Execution time of the sporadic server associated
+    /// to this application, in milliseconds.
+    pub sporadic_server_c  : u32,
+
+    #[allow(dead_code)]
+    /// Memory assigned to the application in kB.
+    pub assigned_memory    : u32,
+
+    /// Available memory in kB.
+    pub available_memory   : u32,
+
+    /// Sum of the computation time for all the requests in the
+    /// backlog, in milliseconds.
+    pub backlog_sum_of_c   : u32,
+
+    /// Application-related fields.
     pub requests           : Vec<Request>,
     pub number_of_requests : u32,
 }
 
 impl ApplicationState
 {
-    pub fn new (node_coords : Coord) -> Self
+    pub fn new (node_coords       : Coord,
+                sporadic_server_t : u32,
+                sporadic_server_c : u32,
+                speedup_factor    : f32,
+                assigned_memory: u32) -> Self
     {
         Self
         {
-            node_state         : NodeState { node_coords }, 
+            node_state         : NodeState { node_coords, speedup_factor },
+            sporadic_server_t,
+            sporadic_server_c,
+            assigned_memory,
+            available_memory   : assigned_memory,
+            backlog_sum_of_c   : 0,
             requests           : Vec::with_capacity (5),
-            number_of_requests : 0, 
+            number_of_requests : 0,
         }
     }
 
@@ -355,8 +431,15 @@ impl ApplicationState
 
     pub fn add_request (&mut self, request : Request)
     {
+        // Enqueue the incoming request.
         self.requests.push (request);
         self.number_of_requests += 1;
+
+        // Then update backlog_sum_of_c.
+        self.backlog_sum_of_c += request.execution_time;
+
+        // Update the resource consumption variables.
+        self.available_memory -= request.required_memory;
     }
 
     pub fn remove_request (&mut self, request_index : usize)
@@ -369,6 +452,14 @@ impl ApplicationState
                 local_index = i;
             }
         }
+
+        // Update backlog_sum_of_c before removing the request.
+        let request    = self.requests[local_index];
+        self.backlog_sum_of_c -= request.execution_time;
+
+        // Update the resource consumption variables.
+        self.available_memory += request.required_memory;
+
         self.requests.remove (local_index);
         self.number_of_requests -= 1;
     }
@@ -383,5 +474,19 @@ impl ApplicationState
     pub fn get_requests (&self, index : usize) -> &Request
     {
         &self.requests[index]
+    }
+
+    pub fn get_expected_completion_time (&self, request_c: u32) -> u32
+    {
+        (((self.backlog_sum_of_c + request_c ) / self.sporadic_server_c) as f32 * self.node_state.speedup_factor).ceil () as u32 * self.sporadic_server_t
+    }
+    pub fn could_host_computation (&self, request: &Request) -> bool
+    {
+        let mut result = false;
+        if request.required_memory < self.available_memory
+        {
+            result = true;
+        }
+        result
     }
 }

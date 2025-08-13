@@ -84,6 +84,10 @@ pub struct ControlSystem
     /// and its tuning has to be performed offline.
     penalty           : f32,
 
+    /// A penalty factor associated to the expected time of completion
+    /// for a request in the current node.
+    etc_multiplier    : f32,
+
     /// The maximum number of iterations in the ADMM algorithm.
     iteration_limit   : usize,
 }
@@ -148,6 +152,7 @@ impl ControlSystem
             affinity,
             application_index,
             penalty         : 20.0,
+            etc_multiplier  : 0.5,
             iteration_limit : 20,
         }
     }
@@ -217,11 +222,13 @@ impl ControlSystem
             let mut incoming_request : Option<Request> = None;
             let mut src_node         : Option<usize>   = None;
             let mut local_solver = 
-                LocalSolver::new (self.node_number, 20.0, Coord::new ());
+                LocalSolver::new(self.node_number, 20.0, 0.5, Coord::new ());
             let mut global_solver =
                 GlobalSolver::new (self.node_number, self.iteration_limit);
-            let mut node_state       : NodeState;
-            let mut dest_node        : Option<usize>;
+            let mut node_state         : NodeState;
+            let mut could_host_request : bool = false;
+            let mut request_etc        : u32;
+            let mut dest_node          : Option<usize>;
 
             #[cfg(feature = "timing_log")]
             let mut start_time = libc::timespec { tv_sec: 0, tv_nsec: 0 };
@@ -262,13 +269,22 @@ impl ControlSystem
                         {
                             None =>
                                 {
-                                    // Acquire a copy of the node state. 
-                                    // It will be preserved during the execution of
-                                    // the consensus algorithm. 
                                     {
+                                        // Acquire a copy of the node state.
+                                        // It will be preserved during the execution of
+                                        // the consensus algorithm.
                                         let state = 
-                                            application_state.lock().unwrap ();
+                                            application_state.lock ().unwrap ();
                                         node_state = state.node_state.clone ();
+
+                                        // Then check if this node could possibly host
+                                        // the incoming request.
+                                        could_host_request = state.could_host_computation (&request);
+
+                                        // And an estimates of the time to complete the computation.
+                                        request_etc =
+                                            state.get_expected_completion_time (request.get_execution_time ());
+
                                         // Drop the value to force relinquishing the lock. 
                                         drop (state);
                                     }
@@ -277,12 +293,23 @@ impl ControlSystem
                                     incoming_request = Some (request);
                                     local_solver.clear (self.node_number,
                                                         self.penalty,
-                                                        node_state.get_coord ());
+                                                        self.etc_multiplier,
+                                                        node_state.get_coord (),
+                                                        request_etc);
                                     global_solver.clear ();
     
-                                    // Perform the local update. 
-                                    local_solver.local_x_update (request.get_desired_coord ());
-    
+                                    // Perform the local update.
+                                    if !could_host_request
+                                    {
+                                        // If the node has not enough resources to host the request,
+                                        // speedup the local_update.
+                                        local_solver.local = 0f32;
+                                    }
+                                    else
+                                    {
+                                        local_solver.local_x_update (&request);
+                                    }
+
                                     // Send x + u, note that the client will receive 
                                     // its own message. 
                                     let local_sum =
@@ -411,8 +438,14 @@ impl ControlSystem
                                 local_solver.local_dual_update ();
 
                                 // Finally, do the local update and send it.
-                                local_solver.local_x_update (
-                                    incoming_request.unwrap ().get_desired_coord ());
+                                if !could_host_request
+                                {
+                                    local_solver.local = 0f32;
+                                }
+                                else
+                                {
+                                    local_solver.local_x_update (&incoming_request.unwrap ());
+                                }
 
                                 // Send x + u, note that the client will receive
                                 // its own message.
@@ -431,7 +464,7 @@ impl ControlSystem
                             }
                         }
                     }
-                    // federation/src/i -> ip:port
+                    // federation/src/i -> ip:port.
                     else if msg.topic () == self.topics[2]
                     {
 
@@ -571,7 +604,7 @@ impl ControlSystem
                                 }
                         }
                     }
-                    // federation/dst/i -> ip:port
+                    // federation/dst/i -> ip:port.
                     else if msg.topic () == self.topics[3]
                     {
 

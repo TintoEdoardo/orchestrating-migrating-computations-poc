@@ -2,7 +2,7 @@
 /*        ADMM SOLVER        */
 /*****************************/
 
-use crate::state::Coord;
+use crate::state::{Coord, Request};
 
 /// Tolerance value used to determine when to stop
 /// the ADMM executions.
@@ -68,15 +68,22 @@ pub struct LocalSolver
     /// rho in the model.
     pub penalty    : f32,
 
+    /// gamma in the model.
+    pub etc_multiplier : f32,
+
     /// Coordinates of the node, used to determine
     /// the distance from the desired position of
     /// a request.
-    pub coordinate : Coord,
+    pub coordinate     : Coord,
+
+    /// The expected times to completion for the
+    /// incoming request in this node.
+    pub request_etc    : u32,
 }
 
 impl LocalSolver
 {
-    pub fn new (number_of_nodes : usize, penalty : f32, coordinate : Coord) -> Self
+    pub fn new (number_of_nodes : usize, penalty : f32, etc_multiplier : f32, coordinate : Coord) -> Self
     {
         Self
         {
@@ -84,43 +91,47 @@ impl LocalSolver
             dual   : 0.0,
             global : 1.0 / number_of_nodes as f32,
             penalty,
-            coordinate }
+            etc_multiplier,
+            coordinate,
+            request_etc: 0,
+        }
     }
 
-    pub fn clear (&mut self, number_of_nodes : usize, penalty : f32, coordinate : Coord)
+    pub fn clear (&mut self, number_of_nodes : usize, penalty : f32, etc_multiplier: f32, coordinate : Coord, request_etc: u32)
     {
         self.local      = 0.0;
         self.dual       = 0.0;
         self.global     = 1.0 / number_of_nodes as f32;
         self.penalty    = penalty;
-        self.coordinate = coordinate;
+        self.etc_multiplier = etc_multiplier;
+        self.coordinate     = coordinate;
+        self.request_etc    = request_etc;
     }
 
     /// Local x-update, performs the local update of the
     /// x variable on the current node. 
-    pub fn local_x_update (&mut self, desired_coord: Coord)
+    pub fn local_x_update (&mut self, request: &Request)
     {
-        // First check if this node might host the incoming request.
-        // Meaning, check whether the constraints are met with local x = 1.
-        // TODO: future plan.
-
         // The object function of the minimization problem.
+        let desired_coord = request.get_desired_coord ();
         fn to_minimize (local    :   f32,
                         dual     :   f32,
                         global   :   f32,
-                        distance :   f32,
+                        c_term   :   f32,
                         penalty  :   f32) -> f32
         {
-            distance * local + (penalty / 2f32) * (local - global + dual).powf (2f32)
+            c_term * local + (penalty / 2f32) * (local - global + dual).powf (2f32)
         }
 
         let distance: f32 =
             ((desired_coord.get_x () - self.coordinate.get_x ()).powi (2) + (desired_coord.get_y () - self.coordinate.get_y ()).powi (2)).sqrt ();
 
+        let c_term: f32 = distance + self.request_etc as f32 * self.etc_multiplier;
+
         let local_at_0 =
-            to_minimize (0f32, self.dual, self.global, distance, self.penalty);
+            to_minimize (0f32, self.dual, self.global, c_term, self.penalty);
         let local_at_1 =
-            to_minimize (1f32, self.dual, self.global, distance, self.penalty);
+            to_minimize (1f32, self.dual, self.global, c_term, self.penalty);
 
         self.local =
             if f32::min (local_at_0, local_at_1) == local_at_0
