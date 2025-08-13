@@ -121,7 +121,7 @@ impl std::str::FromStr for NodeState
                 NodeState
                 {
                     node_coords   : coord.parse ().unwrap (),
-                    speedup_factor: speedup_factor.parse ().unwrap (),
+                    speedup_factor: speedup_factor.parse::<f32> ().unwrap (),
                 }
             ),
             _ => Ok (
