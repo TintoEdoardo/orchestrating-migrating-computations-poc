@@ -13,7 +13,9 @@ wasmtime-wasi = "31.0.0"
 zip = "4.3.0"
 
 [features]
-default = ["print_log", "timing_log"]
+default = ["print_log", "timing_log", "centralized"]
 periodic_activation = []
 print_log = []
 timing_log = []
+centralized = []
+distributed = []

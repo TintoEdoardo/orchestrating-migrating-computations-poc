@@ -5,10 +5,11 @@
 mod state;
 mod state_monitoring_loop;
 mod requests_monitoring_loop;
-mod requests_coordination_loop;
+mod requests_coordination_loop_d;
 mod admm_solver;
 mod sporadic_server;
 mod configuration_loader;
+mod requests_coordination_loop_c;
 
 /// Example of invocation: ./app_lev_orc 4 192.168.1.2:8080 192.168.1.3 0 0 (2.15,9.8) 1 2
 fn main ()
@@ -75,14 +76,26 @@ fn main ()
                                                       20,
                                                       affinity,
                                                       broker_address.clone ());
+    #[cfg(feature = "distributed")]
     let mut requests_coordination_loop =
-        requests_coordination_loop::ControlSystem::new (node_number,
-                                                        application_index,
-                                                        node_index,
-                                                        20,
-                                                        affinity,
-                                                        node_address.to_string (),
-                                                        broker_address.clone ());
+        requests_coordination_loop_d::ControlSystem::new (node_number,
+                                                          application_index,
+                                                          node_index,
+                                                          20,
+                                                          affinity,
+                                                          node_address.to_string (),
+                                                          broker_address.clone ());
+
+    #[cfg(feature = "centralized")]
+    let mut requests_coordination_loop =
+        requests_coordination_loop_c::ControlSystem::new (node_number,
+                                                          application_index,
+                                                          node_index,
+                                                          20,
+                                                          affinity,
+                                                          node_address.to_string (),
+                                                          broker_address.clone ());
+
     let mut sporadic_server                         =
         sporadic_server::ControlSystem::new (application_index,
                                              10,
