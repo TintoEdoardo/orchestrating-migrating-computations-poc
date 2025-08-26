@@ -1,7 +1,6 @@
 /***************************************/
 /*   S P O R A D I C    S E R V E R    */
 /***************************************/
-use std::cmp::min;
 use std::ops::Add;
 
 mod utilities;
@@ -38,8 +37,7 @@ impl SporadicServer
     }
 
     pub fn start (&mut self,
-                  controller       : std::sync::Arc<std::sync::Mutex<SporadicServerController>>,
-                  is_server_running: std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)>)
+                  controller       : std::sync::Arc<std::sync::Mutex<SporadicServerController>>)
     {
 
         // Register the current task to the controller,
@@ -60,9 +58,9 @@ impl SporadicServer
             {
                 println!("Start workload");
                 let mut result = 0;
-                for i in 0..10_000
+                for _i in 0..10_000
                 {
-                    for j in 0..100_000
+                    for _j in 0..100_000
                     {
                         result = result + 1;
                     }
@@ -121,11 +119,10 @@ struct Event
 pub struct SporadicServerController
 {
     /// The controller task respond to events of two kinds:
-    /// release events, when the budget is replenished, and
+    /// replenish events, when the budget is replenished, and
     /// budget exceeded events.
-    /// In this implementation, with only have one server
-    /// task: two variables, instead of queues, are sufficient.
-    event_queue     : Vec<Event>,
+    r_event_queue   : std::collections::VecDeque<Event>,
+    be_event_queue  : std::collections::VecDeque<Event>,
 
     /// Registered servers, in this implementation we assume
     /// a single server task (hence, a single variable).
@@ -159,7 +156,8 @@ impl SporadicServerController
     {
         Self
         {
-            event_queue              : vec![],
+            r_event_queue            : std::collections::VecDeque::new (),
+            be_event_queue           : std::collections::VecDeque::new (),
             server                   : None,
             start_budget             : Default::default(),
             release_time             : std::time::Instant::now(),
@@ -175,6 +173,37 @@ impl SporadicServerController
     {
         self.server = Some(server.clone());
         self.start_budget = server.budget;
+    }
+
+    // Extract the next event from the two queues.
+    fn get_next_event (&mut self) -> Option<Event>
+    {
+        match (self.r_event_queue.front (), self.be_event_queue.front ())
+        {
+            (None, None) =>
+                {
+                    None
+                }
+            (Some(_), None) =>
+                {
+                    Some(self.r_event_queue.pop_front ().unwrap ())
+                }
+            (None, Some(_)) =>
+                {
+                    Some(self.be_event_queue.pop_front ().unwrap ())
+                }
+            (Some(r_event), Some(be_event)) =>
+                {
+                    if r_event.event_time >= be_event.event_time
+                    {
+                        Some(self.be_event_queue.pop_front ().unwrap ())
+                    }
+                    else
+                    {
+                        Some(self.r_event_queue.pop_front ().unwrap ())
+                    }
+                }
+        }
     }
 
     fn budget_consumed (&self) -> std::time::Duration
@@ -199,32 +228,35 @@ impl SporadicServerController
     // of a migrating request.
     fn wait_next_activation (&mut self)
     {
-        // Calculate the new start_budget.
-        self.start_budget = self.budget_consumed ();
+        // Calculate the new remaining budget and consumed budget.
+        let remaining_budget : std::time::Duration = self.budget_remaining ();
+        let consumed_budget  : std::time::Duration = self.budget_consumed ();
 
-        println!("Release time {:?}", self.release_time);
-        println!("Start budget {:?}", self.start_budget);
+        println!("Inside wait next activation: ");
+        println!(" -> release time {:?}",     self.release_time);
+        println!(" -> consumed budget {:?}",  consumed_budget);
+        println!(" -> remaining budget {:?}", remaining_budget);
 
         // Extract the server from its envelop.
         let server = self.server.unwrap ();
+
+        // Add an event for the next budget exhaustion of the server task.
+        let next_be_event = Event
+        {
+            event_type: EventType::BudgetExhausted,
+            event_time: self.release_time.add (remaining_budget),
+            budget    : std::time::Duration::from_millis (0),
+        };
+        self.be_event_queue.push_back (next_be_event);
 
         // Add an event for the next release event of the server task.
         let next_release_event = Event
         {
             event_type: EventType::ReleaseEvent,
             event_time: self.release_time.add (server.period),
-            budget    : self.start_budget,
+            budget    : std::cmp::min (consumed_budget, server.budget),
         };
-
-        // Add the event to the corresponding ``queue''.
-        self.event_queue.push (next_release_event);
-
-        // TODO! MISSING BE EVENT!
-        
-        println!("Event queue: {:?}", &self.event_queue);
-
-        // Mark that now no server task is running.
-        self.is_executing = false;
+        self.r_event_queue.push_back (next_release_event);
 
         // Here, we are not sure if any migrating request is
         // enqueued: hence, suspend the controller until further
@@ -235,20 +267,14 @@ impl SporadicServerController
             cvar.notify_one ();
         }
 
+        // Track the state of the server task.
+        self.is_executing = false;
+
         // Wait for some migrating request.
         {
             let (barrier, cvar) = &*self.barrier;
             let _r = cvar.wait_while (barrier.lock ().unwrap (),
                                       |&mut num_reqs| { num_reqs < 1 }).unwrap ();
-        }
-
-        // If we are here, it means that there are enqueued
-        // migrating requests. Hence, activate the controller
-        // task.
-        {
-            let (is_running, cvar) = &*self.is_server_running;
-            *is_running.lock ().unwrap () = true;
-            cvar.notify_one ();
         }
 
         // Check if the budget has expired.
@@ -257,20 +283,22 @@ impl SporadicServerController
             // Get the release time.
             self.release_time = std::time::Instant::now ();
 
-            println!("Next release event: {:?}", self.release_time);
-
             // Update the budget.
-            self.start_budget = self.budget_remaining ();
-
-            println!("Start budget {:?}", self.start_budget);
+            self.start_budget = remaining_budget;
 
             // Rise the priority of the server task.
             server.rise_priority ();
         }
 
-        // Mark that now a server task is running.
-        self.is_executing = true;
+        // Activate the controller task signalling that the
+        // server task is active.
+        {
+            let (is_running, cvar) = &*self.is_server_running;
+            *is_running.lock ().unwrap () = true;
+            cvar.notify_one ();
+        }
 
+        self.is_executing = true;
     }
 
     pub fn release_sporadic (&mut self)
@@ -281,37 +309,39 @@ impl SporadicServerController
 
     fn timing_event_handler (&mut self, event: Event)
     {
-        // Replenish the budget, without exceeding the limit.
-        let current_budget : std::time::Duration = min(self.budget_remaining () + event.budget,
-                                                       self.server.unwrap ().budget);
-
         // Extract the server from its envelop.
         let server = self.server.unwrap ();
 
-        // This occurs only at release time.
         if self.has_expired && self.is_executing
         {
-            self.release_time = std::time::Instant::now ();
-            self.start_budget = event.budget;
-
             // Then rise the priority.
             server.rise_priority ();
+
+            self.release_time = std::time::Instant::now ();
+            self.start_budget = event.budget;
+            self.has_expired  = false;
+
+            // Remove previous budget exhausted events and create
+            // a new one for the current budget.
+            self.be_event_queue.clear ();
+            let next_budget_expired_event = Event
+            {
+                event_type: EventType::BudgetExhausted,
+                event_time: self.release_time.add (self.start_budget),
+                budget    : std::time::Duration::ZERO,
+            };
+            self.be_event_queue.push_back (next_budget_expired_event);
         }
         else if !self.has_expired && self.is_executing
         {
             self.start_budget = self.start_budget.add (event.budget);
+
+            // Update the existing budget exhausted event.
+            let mut updated_be_event: Event = self.be_event_queue.pop_front (). unwrap ();
+            updated_be_event.event_time     = updated_be_event.event_time.add (event.budget);
+            updated_be_event.budget         = updated_be_event.budget.add (event.budget);
+            self.be_event_queue.push_back (updated_be_event);
         }
-
-        // Finally, create the new budget_expired event.
-        let next_budget_expired_event = Event
-        {
-            event_type: EventType::BudgetExhausted,
-            event_time: self.release_time.add (current_budget),
-            budget    : std::time::Duration::ZERO,
-        };
-
-        // Add the event to the corresponding ``queue''.
-        self.event_queue.push (next_budget_expired_event);
     }
 
     fn budget_expired_handler (&mut self)
@@ -327,9 +357,9 @@ impl SporadicServerController
         {
             event_type: EventType::ReleaseEvent,
             event_time: self.release_time.add (server.period),
-            budget    : self.start_budget,
+            budget    : std::cmp::min (self.start_budget, server.budget),
         };
-        self.event_queue.push (next_release_event);
+        self.r_event_queue.push_back (next_release_event);
 
         // Then lower the server task priority and update start_budget.
         server.lower_priority ();
@@ -356,9 +386,7 @@ impl SporadicServerController
             // the body of the event loop.
             let mut controller = controller.lock ().unwrap ();
 
-            println!("Event queue: {:?}", &controller.event_queue);
-
-            let event = controller.event_queue.pop ();
+            let event = controller.get_next_event ();
 
             if let Some(event) = event
             {
@@ -388,7 +416,7 @@ mod tests
     #[test]
     fn main ()
     {
-        println!("Start main test");
+        println!("START TEST SUITE");
 
         // The number of pending migration requests.
         let reqs_enqueued =
@@ -396,7 +424,7 @@ mod tests
 
         // The state of the server task (is it running?).
         let is_server_running =
-            std::sync::Arc::new ((std::sync::Mutex::new (true), std::sync::Condvar::new ()));
+            std::sync::Arc::new ((std::sync::Mutex::new (false), std::sync::Condvar::new ()));
 
         let controller =
             std::sync::Arc::new (
@@ -407,8 +435,8 @@ mod tests
             );
 
         let mut server = SporadicServer::new (
-            std::time::Duration::from_millis(20),
-            std::time::Duration::from_millis(100),
+            std::time::Duration::from_millis (20),
+            std::time::Duration::from_millis (100),
             80u32);
 
         let first_controller = controller.clone ();
@@ -459,7 +487,7 @@ mod tests
                         libc::CPU_SET (8, &mut cpuset);
                         libc::sched_setaffinity (tid, size_of::<libc::cpu_set_t> (), &mut cpuset);
                     }
-                server.start (controller.clone (), is_server_running.clone ())
+                server.start (controller.clone ())
             });
         handles.push (server_handle);
 
