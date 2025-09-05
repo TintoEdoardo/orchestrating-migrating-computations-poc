@@ -1,9 +1,12 @@
 /***************************************/
 /*   S P O R A D I C    S E R V E R    */
 /***************************************/
+
 use std::ops::Add;
+pub use crate::workload::Workload;
 
 mod utilities;
+mod workload;
 
 #[derive(Clone, Copy)]
 pub struct SporadicServer
@@ -23,9 +26,9 @@ pub struct SporadicServer
 
 impl SporadicServer
 {
-    pub fn new (budget      : std::time::Duration,
-                period      : std::time::Duration,
-                priority    : u32) -> SporadicServer
+    pub fn new (budget  : std::time::Duration,
+                period  : std::time::Duration,
+                priority: u32) -> SporadicServer
     {
         Self
         {
@@ -37,9 +40,9 @@ impl SporadicServer
     }
 
     pub fn start (&mut self,
-                  controller       : std::sync::Arc<std::sync::Mutex<SporadicServerController>>)
+                  controller: std::sync::Arc<std::sync::Mutex<SporadicServerController>>,
+                  workload  : &mut impl Workload)
     {
-
         // Register the current task to the controller,
         // then relinquish the lock on the controller.
         {
@@ -56,16 +59,7 @@ impl SporadicServer
 
             // Workload.
             {
-                println!("Start workload");
-                let mut result = 0;
-                for _i in 0..10_000
-                {
-                    for _j in 0..100_000
-                    {
-                        result = result + 1;
-                    }
-                }
-                println!("End workload");
+                workload.exec_workload();
             }
         }
     }
@@ -411,6 +405,7 @@ impl SporadicServerController
 #[cfg(test)]
 mod tests
 {
+    use std::sync::{Arc, Mutex};
     use super::*;
 
     #[test]
@@ -467,6 +462,25 @@ mod tests
             });
         handles.push (controller_handle);
 
+        struct MyWorkload {}
+        impl Workload for MyWorkload
+        {
+            fn exec_workload(&mut self)
+            {
+                let mut res = 0;
+                for i in 0..1000
+                {
+                    res = i + 1 - (res / i);
+                }
+                if res > 0
+                {
+                    res = 0;
+                }
+            }
+        }
+
+        let mut workload : MyWorkload = MyWorkload {};
+
         let server_handle = std::thread::spawn (move ||
             {
                 // Initialization.
@@ -487,7 +501,7 @@ mod tests
                         libc::CPU_SET (8, &mut cpuset);
                         libc::sched_setaffinity (tid, size_of::<libc::cpu_set_t> (), &mut cpuset);
                     }
-                server.start (controller.clone ())
+                server.start(controller.clone (), &mut workload);
             });
         handles.push (server_handle);
 

@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 # paho-mqtt = "0.13.3"
+sporadic_server = {path = "sporadic_server"}
 paho-mqtt = { version = "0.13", default-features=false, features=["bundled"] }
 futures = "0.3.31"
 libc = "0.2.174"

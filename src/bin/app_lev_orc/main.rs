@@ -65,7 +65,7 @@ fn main ()
     let mut state_monitoring_loop      =
         state_monitoring_loop::ControlSystem::new (application_index,
                                                    node_index,
-                                                   20,
+                                                   50,
                                                    affinity,
                                                    broker_address.clone ());
     let mut requests_monitoring_loop   =
@@ -73,7 +73,7 @@ fn main ()
                                                       application_index,
                                                       1_000,
                                                       first_activation,
-                                                      20,
+                                                      50,
                                                       affinity,
                                                       broker_address.clone ());
     #[cfg(feature = "distributed")]
@@ -91,14 +91,16 @@ fn main ()
         requests_coordination_loop_c::ControlSystem::new (node_number,
                                                           application_index,
                                                           node_index,
-                                                          20,
+                                                          45,
                                                           affinity,
                                                           node_address.to_string (),
                                                           broker_address.clone ());
 
     let mut sporadic_server                         =
         sporadic_server::ControlSystem::new (application_index,
-                                             10,
+                                             20,
+                                             100,
+                                             20,
                                              affinity,
                                              "requests".to_string ());
 

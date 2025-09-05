@@ -109,7 +109,7 @@ impl std::str::FromStr for NodeState
 {
     type Err = std::convert::Infallible;
 
-    /// The expected string: [(f32,f32),f32]
+    /// The expected string: [(f32,f32);f32]
     fn from_str (s: &str) -> Result<Self, Self::Err>
     {
         let trimmed_s = s.replace ('[', "").replace (']', "");
