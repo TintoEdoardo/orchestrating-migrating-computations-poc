@@ -7,49 +7,8 @@ use futures::{executor::block_on, stream::StreamExt};
 use std::io::{Read, Write};
 use crate::{admm_solver::{GlobalSolver, LocalSolver},
             state::{ApplicationState, Coord, NodeState, Request}};
-
-/// This is the message sent through MQTT containing
-/// the local update in the ADMM algorithm.
-struct MessageLocal
-{
-    src       : usize, 
-    local_sum : f32,
-}
-
-impl std::str::FromStr for MessageLocal {
-    type Err = std::string::ParseError;
-
-    fn from_str (s: &str) -> Result<Self, Self::Err>
-    {
-        let strs : Vec<&str> = s.split_terminator ('#').collect ();
-        match (strs.first (), strs.last ())
-        {
-            (Some (&str1), Some (&str2)) =>
-                {
-                    Ok (MessageLocal
-                    {
-                        src: usize::from_str (str1)
-                            .expect ("Unable to convert string to usize"),
-                        local_sum: f32::from_str (str2)
-                            .expect ("Unable to convert string to f32")
-                    })
-                }
-            _ =>
-                {
-                    panic! ("Error while parsing a MessageLocal");
-                }
-        }
-    }
-}
-
-impl std::fmt::Display for MessageLocal
-{
-    fn fmt (&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
-    {
-        write! (f, "{}", format! ("{}#{}", self.src, self.local_sum))
-    }
-}
-
+use crate::mqtt_utils::MessageLocal;
+use crate::linux_utils;
 
 /// Data and functions associated with the
 /// requests_coordination_loop.
@@ -171,23 +130,7 @@ impl ControlSystem
         println! ("requests_coordination_loop - INIT");
 
         // Initialization.
-        unsafe
-            {
-
-                // Scheduling properties.
-                let tid = libc::gettid ();
-                let sched_param = libc::sched_param
-                {
-                    sched_priority: self.priority,
-                };
-                libc::sched_setscheduler (tid, libc::SCHED_FIFO, &sched_param);
-
-                // Affinity.
-                let mut cpuset : libc::cpu_set_t = std::mem::zeroed ();
-                libc::CPU_ZERO (&mut cpuset);
-                libc::CPU_SET (self.affinity, &mut cpuset);
-                libc::sched_setaffinity (tid, size_of::<libc::cpu_set_t> (), &mut cpuset);
-            }
+        linux_utils::set_priority (self.priority, self.affinity);
 
         if let Err (err) = block_on (async {
 

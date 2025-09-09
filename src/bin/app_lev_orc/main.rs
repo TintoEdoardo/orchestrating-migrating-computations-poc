@@ -10,6 +10,8 @@ mod admm_solver;
 mod sporadic_server;
 mod configuration_loader;
 mod requests_coordination_loop_c;
+mod mqtt_utils;
+mod linux_utils;
 
 /// Example of invocation: ./app_lev_orc 4 192.168.1.2:8080 192.168.1.3 0 0 (2.15,9.8) 1 2
 fn main ()

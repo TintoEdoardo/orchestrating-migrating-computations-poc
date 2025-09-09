@@ -7,49 +7,8 @@ use futures::{executor::block_on, stream::StreamExt};
 use std::io::{Read, Write};
 use crate::{admm_solver::{GlobalSolver, LocalSolver},
             state::{ApplicationState, Coord, NodeState, Request}};
-
-/// This is the message sent through MQTT containing
-/// the local update in the ADMM algorithm.
-struct MessageLocal
-{
-    src       : usize, 
-    local_sum : f32,
-}
-
-impl std::str::FromStr for MessageLocal {
-    type Err = std::string::ParseError;
-
-    fn from_str (s: &str) -> Result<Self, Self::Err>
-    {
-        let strs : Vec<&str> = s.split_terminator ('#').collect ();
-        match (strs.first (), strs.last ())
-        {
-            (Some (&str1), Some (&str2)) =>
-                {
-                    Ok (MessageLocal
-                    {
-                        src: usize::from_str (str1)
-                            .expect ("Unable to convert string to usize"),
-                        local_sum: f32::from_str (str2)
-                            .expect ("Unable to convert string to f32")
-                    })
-                }
-            _ =>
-                {
-                    panic! ("Error while parsing a MessageLocal");
-                }
-        }
-    }
-}
-
-impl std::fmt::Display for MessageLocal
-{
-    fn fmt (&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
-    {
-        write! (f, "{}", format! ("{}#{}", self.src, self.local_sum))
-    }
-}
-
+use crate::mqtt_utils::{MessageLocal, BROKER_TOPICS, REGULAR_TOPICS};
+use crate::linux_utils;
 
 /// Data and functions associated with the
 /// requests_coordination_loop.
@@ -137,34 +96,40 @@ impl ControlSystem
 
         // Now depending on whether the current node is the broker
         // or not, configure the topics accordingly.
-        let broker_topics =
-            ["federation/migration".to_string (),
-             "federation/local_update".to_string (),
-             format! ("federation/global_update/{}", node_index).to_string (),
-             format! ("federation/src/{}", node_index).to_string (),
-             format! ("federation/dst/{}", node_index).to_string (),
-             "disconnect".to_string ()];
-
-        let regular_topics =
-            ["federation/migration".to_string (),
-             "_".to_string (),
-             format! ("federation/global_update/{}", node_index).to_string (),
-             format! ("federation/src/{}", node_index).to_string (),
-             format! ("federation/dst/{}", node_index).to_string (),
-             "disconnect".to_string ()];
-
         let search_string = format! ("{}:", broker_address.to_string ());
         let topics       : [String; 6];
         let is_controller: bool;
         if ip_and_port.contains (&search_string)
         {
+
+            #[cfg(feature = "print_log")]
+            println! ("requests_coordination_loop - it is CONTROLLER");
+
             is_controller = true;
-            topics        = broker_topics
+            topics        = [
+                BROKER_TOPICS[0].to_string (),
+                BROKER_TOPICS[1].to_string (),
+                BROKER_TOPICS[2].to_string (),
+                format! ("{}{}", BROKER_TOPICS[3], node_index).to_string (),
+                format! ("{}{}", BROKER_TOPICS[4], node_index).to_string (),
+                BROKER_TOPICS[5].to_string (),
+            ]
         }
         else
         {
+
+            #[cfg(feature = "print_log")]
+            println! ("requests_coordination_loop - it is REGULAR");
+
             is_controller = false;
-            topics        = regular_topics
+            topics        = [
+                REGULAR_TOPICS[0].to_string (),
+                format! ("{}{}", REGULAR_TOPICS[1], node_index).to_string (),
+                format! ("{}{}", REGULAR_TOPICS[2], node_index).to_string (),
+                format! ("{}{}", REGULAR_TOPICS[3], node_index).to_string (),
+                REGULAR_TOPICS[4].to_string (),
+                "unused".to_string (),
+            ]
         }
 
         #[cfg(feature = "print_log")]
@@ -198,23 +163,7 @@ impl ControlSystem
         println! ("requests_coordination_loop - INIT");
 
         // Initialization.
-        unsafe
-            {
-
-                // Scheduling properties.
-                let tid = libc::gettid ();
-                let sched_param = libc::sched_param
-                {
-                    sched_priority: self.priority,
-                };
-                libc::sched_setscheduler (tid, libc::SCHED_FIFO, &sched_param);
-
-                // Affinity.
-                let mut cpuset : libc::cpu_set_t = std::mem::zeroed ();
-                libc::CPU_ZERO (&mut cpuset);
-                libc::CPU_SET (self.affinity, &mut cpuset);
-                libc::sched_setaffinity (tid, size_of::<libc::cpu_set_t> (), &mut cpuset);
-            }
+        linux_utils::set_priority (self.priority, self.affinity);
 
         if let Err (err) = block_on (async {
 
@@ -272,8 +221,7 @@ impl ControlSystem
             {
                 if let Some (msg) = msg_opt 
                 {
-                    // federation/migration -> request.
-                    if msg.topic () == self.topics[0]
+                    if msg.topic () == "federation/migration"
                     {
 
                         #[cfg(feature = "print_log")]
@@ -370,10 +318,10 @@ impl ControlSystem
                                 }
                         }
                     }
-                    // federation/local_update -> f32. 
-                    else if msg.topic () == self.topics[2]
+                    else if msg.topic () == "federation/local_update"
                     {
                         // Only the controller subscribes to this topic.
+                        assert!(self.is_controller);
 
                         #[cfg(feature = "print_log")]
                         println! ("requests_coordination_loop - federation/local_update LOCAL {:?}", msg.payload_str ());
@@ -440,7 +388,7 @@ impl ControlSystem
                         }
                     }
                     // federation/global_update/i -> update-f32 or dest-usize
-                    else if msg.topic () == self.topics[2] && !self.is_controller
+                    else if !self.is_controller && msg.topic () == self.topics[1]
                     {
                         let msg_payload = msg.payload_str ().to_string ();
                         let msg_info = msg_payload.split ("-").collect::<Vec<&str>> ();
@@ -473,7 +421,7 @@ impl ControlSystem
                                 local_sum,
                             };
                             let msg = mqtt::Message::new (
-                                &self.topics[2],
+                                "federation/local_update",
                                 message_local.to_string (),
                                 paho_mqtt::QOS_1);
                             self.client.publish (msg).await?;
@@ -553,7 +501,8 @@ impl ControlSystem
                         }
                     }
                     // federation/src/i -> ip:port.
-                    else if msg.topic () == self.topics[3]
+                    else if (!self.is_controller && msg.topic () == self.topics[2]) ||
+                            (self.is_controller && msg.topic () == self.topics[3])
                     {
 
                         #[cfg(feature = "print_log")]
@@ -693,7 +642,8 @@ impl ControlSystem
                         }
                     }
                     // federation/dst/i -> ip:port.
-                    else if msg.topic () == self.topics[4]
+                    else if (!self.is_controller && msg.topic () == self.topics[3]) ||
+                            (self.is_controller && msg.topic () == self.topics[4])
                     {
 
                         #[cfg(feature = "print_log")]
