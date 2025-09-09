@@ -162,6 +162,13 @@ impl ControlSystem
         // Initialization.
         linux_utils::set_priority (self.priority, self.affinity);
 
+        // To avoid re-computing the same topics' names
+        // we define the most used here.
+        let federation_src = format! ("federation/src/{}", self.node_index);
+        let federation_dst = format! ("federation/dst/{}", self.node_index);
+        let federation_global_upd = format! ("federation/global_update/{}", self.node_index);
+
+
         if let Err (err) = block_on (async {
 
             // Get message stream before connecting. 
@@ -385,7 +392,7 @@ impl ControlSystem
                         }
                     }
                     // federation/global_update/i -> update-f32 or dest-usize
-                    else if !self.is_controller && msg.topic () == self.topics[1]
+                    else if msg.topic () == federation_global_upd
                     {
                         let msg_payload = msg.payload_str ().to_string ();
                         let msg_info = msg_payload.split ("-").collect::<Vec<&str>> ();
@@ -504,8 +511,7 @@ impl ControlSystem
                         }
                     }
                     // federation/src/i -> ip:port.
-                    else if (!self.is_controller && msg.topic () == self.topics[2]) ||
-                            (self.is_controller && msg.topic () == self.topics[3])
+                    else if msg.topic () == federation_src
                     {
 
                         #[cfg(feature = "print_log")]
@@ -645,8 +651,7 @@ impl ControlSystem
                         }
                     }
                     // federation/dst/i -> ip:port.
-                    else if (!self.is_controller && msg.topic () == self.topics[3]) ||
-                            (self.is_controller && msg.topic () == self.topics[4])
+                    else if msg.topic () == federation_dst
                     {
 
                         #[cfg(feature = "print_log")]
