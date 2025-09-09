@@ -31,6 +31,10 @@ fn main ()
     let affinity          : usize = args[7].parse::<usize> ()
         .expect ( "Unable to parse affinity. " );
 
+    #[cfg(feature = "centralized")]
+    let is_controller : bool = args[8].parse::<bool> ()
+        .expect ( "Unable to parse is_controller. " );
+
     // Node data. 
     let node_coords : state::Coord = node_state.get_coord ();
     let node_speedup_factor : f32  = node_state.get_speedup_factor ();
@@ -91,6 +95,7 @@ fn main ()
     #[cfg(feature = "centralized")]
     let mut requests_coordination_loop =
         requests_coordination_loop_c::ControlSystem::new (node_number,
+                                                          is_controller,
                                                           application_index,
                                                           node_index,
                                                           45,

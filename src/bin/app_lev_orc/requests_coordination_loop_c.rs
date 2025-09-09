@@ -58,6 +58,7 @@ impl ControlSystem
 {
 
     pub fn new (node_number      : usize,
+                is_controller    : bool,
                 application_index: usize,
                 node_index       : usize,
                 priority         : i32,
@@ -96,16 +97,13 @@ impl ControlSystem
 
         // Now depending on whether the current node is the broker
         // or not, configure the topics accordingly.
-        let search_string = format! ("{}:", broker_address.to_string ());
-        let topics       : [String; 6];
-        let is_controller: bool;
-        if ip_and_port.contains (&search_string)
+        let topics : [String; 6];
+        if is_controller
         {
 
             #[cfg(feature = "print_log")]
             println! ("requests_coordination_loop - it is CONTROLLER");
 
-            is_controller = true;
             topics        = [
                 BROKER_TOPICS[0].to_string (),
                 BROKER_TOPICS[1].to_string (),
@@ -121,7 +119,6 @@ impl ControlSystem
             #[cfg(feature = "print_log")]
             println! ("requests_coordination_loop - it is REGULAR");
 
-            is_controller = false;
             topics        = [
                 REGULAR_TOPICS[0].to_string (),
                 format! ("{}{}", REGULAR_TOPICS[1], node_index).to_string (),
