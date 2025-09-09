@@ -302,7 +302,7 @@ impl ControlSystem
                                         local_sum,
                                     };
                                     let msg = mqtt::Message::new (
-                                        &self.topics[2],
+                                        "federation/local_update",
                                         message_local.to_string (),
                                         paho_mqtt::QOS_1);
                                     self.client.publish (msg).await?;
