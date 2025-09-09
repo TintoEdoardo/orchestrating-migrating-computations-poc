@@ -107,7 +107,7 @@ impl ControlSystem
             topics        = [
                 BROKER_TOPICS[0].to_string (),
                 BROKER_TOPICS[1].to_string (),
-                BROKER_TOPICS[2].to_string (),
+                format! ("{}{}", BROKER_TOPICS[2], node_index).to_string (),
                 format! ("{}{}", BROKER_TOPICS[3], node_index).to_string (),
                 format! ("{}{}", BROKER_TOPICS[4], node_index).to_string (),
                 BROKER_TOPICS[5].to_string (),
@@ -433,7 +433,6 @@ impl ControlSystem
 
                             #[cfg(feature = "print_log")]
                             println! ("requests_coordination_loop - SENT local update");
-
 
                         }
                         else if msg_info[0] == "dest"
