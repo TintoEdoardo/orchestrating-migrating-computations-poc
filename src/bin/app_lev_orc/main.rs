@@ -43,7 +43,7 @@ fn main ()
     let application_state: std::sync::Arc<std::sync::Mutex<state::ApplicationState>> =
         std::sync::Arc::new (
             std::sync::Mutex::new (
-                state::ApplicationState::new(node_coords, 100, 90, node_speedup_factor, 1_000_000)));
+                state::ApplicationState::new(node_coords, 100, 20, node_speedup_factor, 1_000_000)));
     configuration_loader::load_requests (application_state.clone ());
 
     // Initialize the sporadic server barrier.

@@ -422,6 +422,12 @@ impl ControlSystem
                                 message_local.to_string (),
                                 paho_mqtt::QOS_1);
                             self.client.publish (msg).await?;
+
+
+                            #[cfg(feature = "print_log")]
+                            println! ("requests_coordination_loop - SENT local update");
+
+
                         }
                         else if msg_info[0] == "dest"
                         {
