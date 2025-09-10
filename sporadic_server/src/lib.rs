@@ -61,6 +61,9 @@ impl SporadicServer
             {
                 workload.exec_workload();
             }
+
+            // Finalize.
+            controller.lock ().unwrap ().signal_request_completion ();
         }
     }
 
@@ -267,6 +270,9 @@ impl SporadicServerController
         // Wait for some migrating request.
         {
             let (barrier, cvar) = &*self.barrier;
+
+            println!("sporadic server (lib) - the barrier is now {}", barrier.lock ().unwrap ());
+
             let _r = cvar.wait_while (barrier.lock ().unwrap (),
                                       |&mut num_reqs| { num_reqs < 1 }).unwrap ();
         }
@@ -358,6 +364,16 @@ impl SporadicServerController
         // Then lower the server task priority and update start_budget.
         server.lower_priority ();
         self.start_budget = std::time::Duration::ZERO;
+    }
+
+    fn signal_request_completion (&mut self)
+    {
+        let (barrier, cvar) = &*self.barrier;
+        *barrier.lock ().unwrap () -= 1;
+
+        println!("sporadic server (lib) - the barrier is now {}", barrier.lock ().unwrap ());
+
+        cvar.notify_all ();
     }
 
     pub fn start (controller       : std::sync::Arc<std::sync::Mutex<SporadicServerController>>,
