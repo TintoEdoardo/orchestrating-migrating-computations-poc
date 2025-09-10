@@ -215,11 +215,17 @@ impl sporadic_server::Workload for WasmWorkload
             None =>
                 {
 
-                    // It is not obvious that we might end up here:
-                    // it means that number_of_requests is != 0, but the vector
-                    // of requests is empty.
+                    // We reach this point if the number of requests was greater than 0
+                    // during `wait_for_activation ()' but then got empty before checking
+                    // `requests'.
+                    // TODO: possible extension.
+                    // in would be possible to move the current served request
+                    // out of the pending queue, to avoid this issue.
+                    // For now, we can simply terminate the function, and re-run
+                    // `wait_for_activation ()'.
                     #[cfg(feature = "print_log")]
-                    panic! ("sporadic_server - requests.is_empty (). ");
+                    println! ("sporadic_server - requests.is_empty (). ");
+                    return;
                 }
             Some (&request) =>
                 {
