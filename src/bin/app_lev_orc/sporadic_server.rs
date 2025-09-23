@@ -3,7 +3,6 @@
 /*         ( I N S T A N C E )         */
 /***************************************/
 
-use std::io::Read;
 use crate::state::{ApplicationState, Request};
 use sporadic_server;
 use sporadic_server::{SporadicServer, SporadicServerController};
@@ -356,24 +355,13 @@ impl sporadic_server::Workload for WasmWorkload
                         {
                             // Do nothing.
                         }
-                    Some(file) =>
-                        {
-                            let index : usize = 0;
-                            for byte in file.bytes()
-                            {
-                                match byte {
-                                    Ok (byte) =>
-                                        {
-                                            unsafe
-                                                {
-                                                    *main_mem_ptr.wrapping_add (index) = byte;
-                                                }
-                                        }
-                                    _ =>
-                                        {
-                                            break;
-                                        }
-                                }
+                    Some (_file) =>
+                        unsafe {
+                            // Copy the main linear memory from its checkpoint.
+                            let main_memory_data : Vec<u8> = std::fs::read ("main_memory.b")
+                                .expect ("Unable to read main_memory.b");
+                            for i in 0..main_memory_data.len() {
+                                *main_mem_ptr.wrapping_add (i) = main_memory_data[i];
                             }
                         }
                 }
@@ -385,24 +373,13 @@ impl sporadic_server::Workload for WasmWorkload
                         {
                             // Do nothing.
                         }
-                    Some(file) =>
-                        {
-                            let index : usize = 0;
-                            for byte in file.bytes()
-                            {
-                                match byte {
-                                    Ok (byte) =>
-                                        {
-                                            unsafe
-                                                {
-                                                    *checkpoint_memory_ptr.wrapping_add (index) = byte;
-                                                }
-                                        }
-                                    _ =>
-                                        {
-                                            break;
-                                        }
-                                }
+                    Some (_file) =>
+                        unsafe {
+                            // Copy the main linear memory from its checkpoint.
+                            let checkpoint_memory_data : Vec<u8> = std::fs::read ("checkpoint_memory.b")
+                                .expect ("Unable to read checkpoint_memory.b");
+                            for i in 0..checkpoint_memory_data.len() {
+                                *checkpoint_memory_ptr.wrapping_add (i) = checkpoint_memory_data[i];
                             }
                         }
                 }

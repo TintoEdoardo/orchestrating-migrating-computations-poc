@@ -252,6 +252,11 @@ impl GlobalSolver
         self.globals.z[node_index]
     }
 
+    pub fn get_iterations (&self) -> usize
+    {
+        self.iteration
+    }
+
     /// Update the global variable z.
     pub fn global_z_updater (&mut self)
     {

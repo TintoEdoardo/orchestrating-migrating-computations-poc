@@ -5,8 +5,7 @@
 use paho_mqtt::{self as mqtt, MQTT_VERSION_5};
 use futures::{executor::block_on, stream::StreamExt};
 use std::io::{Read, Write};
-use crate::{admm_solver::{GlobalSolver, LocalSolver},
-            state::{ApplicationState, Coord, NodeState, Request}};
+use crate::{admm_solver::{GlobalSolver, LocalSolver}, log_writer, state::{ApplicationState, Coord, NodeState, Request}};
 use crate::mqtt_utils::{MessageLocal, BROKER_TOPICS, REGULAR_TOPICS};
 use crate::linux_utils;
 
@@ -215,7 +214,6 @@ impl ControlSystem
 
             #[cfg(feature = "timing_log")]
             let mut start_time = libc::timespec { tv_sec: 0, tv_nsec: 0 };
-            let mut end_time   = libc::timespec { tv_sec: 0, tv_nsec: 0 };
 
             #[cfg(feature = "print_log")]
             println! ("requests_coordination_loop - LOOP");
@@ -350,6 +348,13 @@ impl ControlSystem
                             global_solver.global_z_updater ();
                             if global_solver.terminated ()
                             {
+
+                                #[cfg(feature = "timing_log")]
+                                {
+                                    let iterations = global_solver.get_iterations ();
+                                    let completion_time = linux_utils::get_completion_time (start_time);
+                                    log_writer::save_admm_data (true, completion_time, iterations);
+                                }
 
                                 // Load the value of the dest_node.
                                 dest_node = Some (global_solver.get_max_global_index ());
@@ -486,23 +491,6 @@ impl ControlSystem
                                     panic! ("Src node unknown");
                                     }
                             }
-
-                            #[cfg(feature = "timing_log")]
-                            unsafe
-                                {
-                                    libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut end_time);
-                                    let time_to_completion : f64;
-                                    let mut diff_sec = end_time.tv_sec - start_time.tv_sec;
-                                    let mut diff_nsec = end_time.tv_nsec - start_time.tv_nsec;
-                                    if diff_nsec < 0
-                                    {
-                                        diff_nsec += 1_000_000_000;
-                                        diff_sec -= 1;
-                                    }
-                                    time_to_completion = (diff_sec * 1_000) as f64 + (diff_nsec / 1_000_000) as f64;
-                                    println! ("requests_coordination_loop - time_to_completion = {} ms",
-                                              time_to_completion);
-                                }
                         }
                         else
                         {

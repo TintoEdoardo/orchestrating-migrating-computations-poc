@@ -12,6 +12,7 @@ mod configuration_loader;
 mod requests_coordination_loop_c;
 mod mqtt_utils;
 mod linux_utils;
+mod log_writer;
 
 /// Example of invocation: ./app_lev_orc 4 192.168.1.2:8080 192.168.1.3 0 0 (2.15,9.8) 1 2
 fn main ()
@@ -19,21 +20,21 @@ fn main ()
     // Parse input arguments.
     let args: Vec<String> = std::env::args ().collect ();
     let node_number       : usize = args[1].parse::<usize > ()
-        .expect ( "Unable to parse node number. " );
+        .expect ("Unable to parse node number. ");
     let node_address      : String = args[2].to_string ();
     let broker_address    : String = args[3].to_string ();
     let node_index        : usize = args[4].parse::<usize > ()
-        .expect ( "Unable to parse node index. " );
+        .expect ("Unable to parse node index. ");
     let application_index : usize = args[5].parse::<usize > ()
-        .expect( "Unable to parse application index. " );
+        .expect ("Unable to parse application index. ");
     let node_state        : state::NodeState = args[6].parse::<state::NodeState> ()
-        .expect("Unable to parse into NodeState. ");
+        .expect ("Unable to parse into NodeState. ");
     let affinity          : usize = args[7].parse::<usize> ()
-        .expect ( "Unable to parse affinity. " );
+        .expect ("Unable to parse affinity. ");
 
     #[cfg(feature = "centralized")]
     let is_controller : bool = args[8].parse::<bool> ()
-        .expect ( "Unable to parse is_controller. " );
+        .expect ("Unable to parse is_controller. ");
 
     // Node data. 
     let node_coords : state::Coord = node_state.get_coord ();
@@ -43,7 +44,8 @@ fn main ()
     let application_state: std::sync::Arc<std::sync::Mutex<state::ApplicationState>> =
         std::sync::Arc::new (
             std::sync::Mutex::new (
-                state::ApplicationState::new(node_coords, 100, 20, node_speedup_factor, 1_000_000)));
+                state::ApplicationState::new (
+                    node_coords, 100, 20, node_speedup_factor, 1_000_000)));
     configuration_loader::load_requests (application_state.clone ());
 
     // Initialize the sporadic server barrier.
@@ -87,7 +89,7 @@ fn main ()
         requests_coordination_loop_d::ControlSystem::new (node_number,
                                                           application_index,
                                                           node_index,
-                                                          20,
+                                                          45,
                                                           affinity,
                                                           node_address.to_string (),
                                                           broker_address.clone ());

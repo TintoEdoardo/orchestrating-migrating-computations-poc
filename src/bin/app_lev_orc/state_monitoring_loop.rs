@@ -6,6 +6,7 @@ use paho_mqtt::{self as mqtt, MQTT_VERSION_5};
 use futures::{executor::block_on, stream::StreamExt};
 
 use crate::state::{ApplicationState, NodeState};
+use crate::linux_utils;
 
 /// Data and functions associated with the
 /// state_monitoring_loop.
@@ -74,23 +75,7 @@ impl ControlSystem
         println! ("state_monitoring_loop - INIT");
 
         // Initialization.
-        unsafe
-            {
-
-                // Scheduling properties.
-                let tid = libc::gettid ();
-                let sched_param = libc::sched_param
-                {
-                    sched_priority: self.priority,
-                };
-                libc::sched_setscheduler (tid, libc::SCHED_FIFO, &sched_param);
-
-                // Affinity.
-                let mut cpuset : libc::cpu_set_t = std::mem::zeroed ();
-                libc::CPU_ZERO (&mut cpuset);
-                libc::CPU_SET (self.affinity, &mut cpuset);
-                libc::sched_setaffinity (tid, size_of::<libc::cpu_set_t> (), &mut cpuset);
-            }
+        linux_utils::set_priority (self.priority, self.affinity);
 
         if let Err (err) = block_on (async
             {
