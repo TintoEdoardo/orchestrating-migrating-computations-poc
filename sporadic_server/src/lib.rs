@@ -5,8 +5,12 @@
 use std::ops::Add;
 pub use crate::workload::Workload;
 
+#[cfg(feature = "timing_log")]
+use crate::log_events::EventLogger;
+
 mod utilities;
 mod workload;
+mod log_events;
 
 #[derive(Clone, Copy)]
 pub struct SporadicServer
@@ -45,31 +49,25 @@ impl SporadicServer
     {
         // Register the current task to the controller,
         // then relinquish the lock on the controller.
-        {
-            controller.lock ().unwrap ().register (self);
-        }
+        controller.lock ().unwrap ().register (self);
 
         // Sporadic server body.
         loop
         {
-            {
-                // Wait for the next activation.
-                controller.lock ().unwrap ().wait_next_activation ();
-            }
+            // Wait for the next activation.
+            controller.lock ().unwrap ().wait_next_activation ();
 
             // Workload.
-            {
-                workload.exec_workload();
-            }
+            workload.exec_workload ();
 
             // Finalize.
-            controller.lock ().unwrap ().signal_request_completion ();
+            controller.lock().unwrap().signal_request_completion ();
         }
     }
 
     fn lower_priority (&self)
     {
-        utilities::set_priority (self.id, 1);
+        utilities::set_niceness (self.id, 15);
     }
 
     fn rise_priority (&self)
@@ -143,6 +141,10 @@ pub struct SporadicServerController
 
     /// Whether the budget has expired.
     has_expired     : bool,
+
+    /// Logger for time events.
+    #[cfg(feature = "timing_log")]
+    event_logger    : EventLogger,
 }
 
 impl SporadicServerController
@@ -162,6 +164,8 @@ impl SporadicServerController
             is_server_running        : is_ser_running,
             is_executing             : false,
             has_expired              : false,
+            #[cfg(feature = "timing_log")]
+            event_logger             : EventLogger::new (),
         }
     }
 
@@ -229,10 +233,13 @@ impl SporadicServerController
         let remaining_budget : std::time::Duration = self.budget_remaining ();
         let consumed_budget  : std::time::Duration = self.budget_consumed ();
 
-        println!("Inside wait next activation: ");
-        println!(" -> release time {:?}",     self.release_time);
-        println!(" -> consumed budget {:?}",  consumed_budget);
-        println!(" -> remaining budget {:?}", remaining_budget);
+        #[cfg(feature = "print_log")]
+        {
+            println!("Inside wait next activation: ");
+            println!(" -> release time {:?}", self.release_time);
+            println!(" -> consumed budget {:?}", consumed_budget);
+            println!(" -> remaining budget {:?}", remaining_budget);
+        }
 
         // Extract the server from its envelop.
         let server = self.server.unwrap ();
@@ -271,6 +278,7 @@ impl SporadicServerController
         {
             let (barrier, cvar) = &*self.barrier;
 
+            #[cfg(feature = "print_log")]
             println!("sporadic server (lib) - the barrier is now {}", barrier.lock ().unwrap ());
 
             let _r = cvar.wait_while (barrier.lock ().unwrap (),
@@ -362,17 +370,21 @@ impl SporadicServerController
         self.r_event_queue.push_back (next_release_event);
 
         // Then lower the server task priority and update start_budget.
-        server.lower_priority ();
         self.start_budget = std::time::Duration::ZERO;
+        server.lower_priority ();
     }
 
     fn signal_request_completion (&mut self)
     {
+        #[cfg(feature = "timing_log")]
+        {
+            self.event_logger.print_event (
+                log_events::EventType::RequestCompleted,
+                std::time::Instant::now ()).expect ("Unable to write log data. ");
+        }
+
         let (barrier, cvar) = &*self.barrier;
         *barrier.lock ().unwrap () -= 1;
-
-        println!("sporadic server (lib) - the barrier is now {}", barrier.lock ().unwrap ());
-
         cvar.notify_all ();
     }
 
@@ -381,7 +393,6 @@ impl SporadicServerController
     {
         loop
         {
-
             // Run only when the server task is active.
             // Doing so prevent the event loop from running
             // when there are no requests.
@@ -407,10 +418,22 @@ impl SporadicServerController
                 // Then process it.
                 if event.event_type == EventType::ReleaseEvent
                 {
+                    #[cfg(feature = "timing_log")]
+                    {
+                        controller.event_logger.print_event (
+                            log_events::EventType::ReleaseEvent,
+                            event.event_time).expect ("Unable to write log data. ");
+                    }
                     controller.timing_event_handler (event);
                 }
                 else if event.event_type == EventType::BudgetExhausted
                 {
+                    #[cfg(feature = "timing_log")]
+                    {
+                        controller.event_logger.print_event (
+                            log_events::EventType::BudgetExhausted,
+                            event.event_time).expect ("Unable to write log data. ");
+                    }
                     controller.budget_expired_handler ();
                 }
             }
@@ -421,7 +444,6 @@ impl SporadicServerController
 #[cfg(test)]
 mod tests
 {
-    use std::sync::{Arc, Mutex};
     use super::*;
 
     #[test]
@@ -481,6 +503,7 @@ mod tests
         struct MyWorkload {}
         impl Workload for MyWorkload
         {
+            #[allow(unused_assignments)]
             fn exec_workload(&mut self)
             {
                 let mut res = 0;

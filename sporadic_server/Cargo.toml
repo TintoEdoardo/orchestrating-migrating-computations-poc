@@ -5,3 +5,8 @@ edition = "2024"
 
 [dependencies]
 libc = "1.0.0-alpha.1"
+
+[features]
+default = ["timing_log"]
+print_log = []
+timing_log = []
