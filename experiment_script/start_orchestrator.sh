@@ -13,6 +13,6 @@ ip="${ip% }"
 
 
 echo "CALLING : ./experiments/app_lev_orc '"$ip:8080"' '"192.168.1.210"' $1 0 '"$2"' 2 $3"
-./experiments/app_lev_orc 3 '"$ip:8080"' '"192.168.1.210"' $1 0 '"$2"' 2 $3 & pid=$!
+./experiments/app_lev_orc 3 "$ip:8080" "192.168.1.210" $1 0 "$2" 2 $3 & pid=$!
 
 echo $pid > experiments/pid.txt

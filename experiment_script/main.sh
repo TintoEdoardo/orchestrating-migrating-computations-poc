@@ -57,9 +57,9 @@ for mode in $modes; do
 
     # Start the orchestrator.
     echo "START ORCHESTRATOR"
-    sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S experiment_script/start_orchestrator.sh 0 '"$node_state_1"' 1"
-    sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S experiment_script/start_orchestrator.sh 0 $node_state_2 0"
-    sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S experiment_script/start_orchestrator.sh 0 $node_state_3 0"
+    sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S experiment_script/start_orchestrator.sh 0 $node_state_1 1"
+    sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S experiment_script/start_orchestrator.sh 1 $node_state_2 0"
+    sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S experiment_script/start_orchestrator.sh 2 $node_state_3 0"
     echo "ORCHESTRATION STARTED"
 
     # Start the experiment.
