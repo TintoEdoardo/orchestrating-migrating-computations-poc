@@ -7,6 +7,7 @@
 // To do so, a configuration file is used, located in the
 // 'requests' folder.
 
+use std::io::BufRead;
 use crate::state::{ApplicationState, Request};
 
 pub fn load_requests (application_state: std::sync::Arc<std::sync::Mutex<ApplicationState>>)
@@ -23,5 +24,22 @@ pub fn load_requests (application_state: std::sync::Arc<std::sync::Mutex<Applica
 
         application_state.add_request (request);
     }
+}
+
+pub fn load_config (config_file: String) -> Vec<String>
+{
+    let file = std::fs::OpenOptions::new ()
+        .read (true)
+        .open (&config_file)
+        .expect ("Unable to open config file");
+    let buf_reader = std::io::BufReader::new (file);
+    let mut lines = Vec::<String>::new ();
+
+    for line in buf_reader.lines ()
+    {
+        lines.push (line.unwrap ());
+    }
+
+    lines
 
 }

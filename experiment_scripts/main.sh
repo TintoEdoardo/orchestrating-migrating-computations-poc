@@ -16,7 +16,6 @@ pwd_ns=$(cat node_user_password.txt)
 
 # Start the low priority task.
 echo "START LP TASKS"
-sshpass -f node_user_password.txt ssh ubuntu@$node_1 "echo $(cat node_user_password.txt) | sudo -S whoami"
 sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 3600 experiment_script/lp_task_aarch64"
 sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 3600 experiment_script/lp_task_aarch64"
 sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 3600 experiment_script/lp_task_aarch64"

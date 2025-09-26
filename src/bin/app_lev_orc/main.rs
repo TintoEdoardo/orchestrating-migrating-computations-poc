@@ -14,29 +14,48 @@ mod mqtt_utils;
 mod linux_utils;
 mod log_writer;
 
-/// Example of invocation: ./app_lev_orc 4 192.168.1.2:8080 192.168.1.3 0 0 (2.15,9.8) 1 2
+/// Example of invocation: ./app_lev_orc config_file.conf
 fn main ()
 {
     // Parse input arguments.
     let args: Vec<String> = std::env::args ().collect ();
-    let node_number       : usize = args[1].parse::<usize > ()
-        .expect ("Unable to parse node number. ");
-    let node_address      : String = args[2].to_string ();
-    let broker_address    : String = args[3].to_string ();
-    let node_index        : usize = args[4].parse::<usize > ()
-        .expect ("Unable to parse node index. ");
-    let application_index : usize = args[5].parse::<usize > ()
-        .expect ("Unable to parse application index. ");
-    let node_state        : state::NodeState = args[6].parse::<state::NodeState> ()
-        .expect ("Unable to parse into NodeState. ");
-    let affinity          : usize = args[7].parse::<usize> ()
-        .expect ("Unable to parse affinity. ");
 
-    #[cfg(feature = "centralized")]
-    let is_controller : bool = args[8].parse::<bool> ()
-        .expect ("Unable to parse is_controller. ");
+    let node_index       : usize;
+    let application_index: usize;
+    let node_address     : String;
+    let node_state       : state::NodeState;
+    let affinity         : usize;
+    let node_number      : usize;
+    let broker_address   : String;
+    let is_controller    : bool;
 
-    // Node data. 
+    let lines = configuration_loader::load_config (args[1].clone ());
+
+    node_index        = lines.get (0).expect ("Failed to read node_index. ")
+        .parse ().expect ("Failed to parse node_index. ");
+    application_index = lines.get (1).expect ("Failed to read application_index. ")
+        .parse ().expect ("Failed to parse application_index. ");
+    node_address      = lines.get (2).expect ("Failed to read node_address.").clone ();
+    node_state        = lines.get (3).expect ("Failed to read node_state. ")
+        .parse ().expect ("Failed to parse node_state. ");
+    affinity          = lines.get (4).expect ("Failed to read affinity. ")
+        .parse ().expect ("Failed to parse affinity. ");
+    node_number       = lines.get (5).expect ("Failed to read node_number. ")
+        .parse ().expect ("Failed to parse node_number. ");
+    broker_address    = lines.get (6).expect ("Failed to read broker_address").clone ();
+    match lines.get (7)
+    {
+        None =>
+            {
+                is_controller = false;
+            }
+        Some(flag) =>
+            {
+                is_controller = flag.parse ().expect ("Failed to parse is_controller. ");
+            }
+    }
+
+    // Node data.
     let node_coords : state::Coord = node_state.get_coord ();
     let node_speedup_factor : f32  = node_state.get_speedup_factor ();
 
@@ -85,6 +104,7 @@ fn main ()
                                                       affinity,
                                                       broker_address.clone ());
     #[cfg(feature = "distributed")]
+    #[allow(unused_variables, unused_mut)]
     let mut requests_coordination_loop =
         requests_coordination_loop_d::ControlSystem::new (node_number,
                                                           application_index,
