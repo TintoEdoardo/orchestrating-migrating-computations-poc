@@ -8,6 +8,7 @@
 # $2 : node state => "[(1.2,3.4);0.5]"
 # $3 : is controller? (only for centralized)
 
+echo "CALLING : ./experiments/app_lev_orc $(hostname -I):8080 \"192.168.1.210\" $1 0 '"$2"' 2 $3"
 ./experiments/app_lev_orc 3 "$(hostname -I):8080" "192.168.1.210" $1 0 '"$2"' 2 $3 & pid=$!
 
 echo $pid > experiments/pid.txt
