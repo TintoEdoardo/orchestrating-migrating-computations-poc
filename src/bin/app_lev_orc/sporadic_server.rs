@@ -6,6 +6,7 @@
 use crate::state::{ApplicationState, Request};
 use sporadic_server;
 use sporadic_server::{SporadicServer, SporadicServerController};
+use crate::main;
 
 /// Once a node accepts a request, the request
 /// is executed by a thread.
@@ -239,8 +240,8 @@ impl sporadic_server::Workload for WasmWorkload
             wasi              : wasmtime_wasi::preview1::WasiP1Ctx,
             application_state : std::sync::Arc<std::sync::Mutex<ApplicationState>>,
             request_index     : usize,
-            main_memory_file        : Option<std::fs::File>,
-            checkpoint_memory_file  : Option<std::fs::File>,
+            main_memory_file        : Option<String>,
+            checkpoint_memory_file  : Option<String>,
         }
 
         // Create the engine.
@@ -301,20 +302,20 @@ impl sporadic_server::Workload for WasmWorkload
         let main_memory_file_r = std::fs::OpenOptions::new ()
             .create (true)
             .write (true)
-            .open (main_memory);
+            .open (&main_memory);
         let main_memory_file = match main_memory_file_r
         {
-            Ok (file) => Some (file),
+            Ok (_file) => Some (main_memory),
             Err (_) => None,
         };
 
         let checkpoint_memory_file_r = std::fs::OpenOptions::new ()
             .create (true)
             .write (true)
-            .open (checkpoint_memory);
+            .open (&checkpoint_memory);
         let checkpoint_memory_file = match checkpoint_memory_file_r
         {
-            Ok (file) => Some (file),
+            Ok (_file) => Some (checkpoint_memory),
             Err (_) => None,
         };
 
@@ -355,10 +356,10 @@ impl sporadic_server::Workload for WasmWorkload
                         {
                             // Do nothing.
                         }
-                    Some (_file) =>
+                    Some (path_to_file) =>
                         unsafe {
                             // Copy the main linear memory from its checkpoint.
-                            let main_memory_data : Vec<u8> = std::fs::read ("main_memory.b")
+                            let main_memory_data : Vec<u8> = std::fs::read (path_to_file)
                                 .expect ("Unable to read main_memory.b");
                             for i in 0..main_memory_data.len() {
                                 *main_mem_ptr.wrapping_add (i) = main_memory_data[i];
@@ -373,10 +374,10 @@ impl sporadic_server::Workload for WasmWorkload
                         {
                             // Do nothing.
                         }
-                    Some (_file) =>
+                    Some (path_to_file) =>
                         unsafe {
                             // Copy the main linear memory from its checkpoint.
-                            let checkpoint_memory_data : Vec<u8> = std::fs::read ("checkpoint_memory.b")
+                            let checkpoint_memory_data : Vec<u8> = std::fs::read (path_to_file)
                                 .expect ("Unable to read checkpoint_memory.b");
                             for i in 0..checkpoint_memory_data.len() {
                                 *checkpoint_memory_ptr.wrapping_add (i) = checkpoint_memory_data[i];
