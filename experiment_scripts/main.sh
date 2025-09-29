@@ -22,7 +22,7 @@ sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating
 echo "LP TASKS STARTED"
 
 declare -a modes=("centralized" "distributed")
-for mode in $modes; do
+for mode in "${modes[@]}"s; do
 
   echo "MODES IS $mode"
 
@@ -82,7 +82,7 @@ for mode in $modes; do
     sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/stop_orchestrator.sh"
     sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/stop_orchestrator.sh"
     echo "ORCHESTRATOR STOPPED"
-  done<experiment_data/distances.txt
+  done < experiment_data/distances.txt
 
   echo "END OF EXPERIMENT 1"
 
