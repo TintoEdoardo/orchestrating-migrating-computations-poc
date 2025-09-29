@@ -15,15 +15,15 @@ su_factor_3="0.5"
 pwd_ns=$(cat node_user_password.txt)
 
 # Configure the experiment folder.
-./experiment_scripts/configure_folder.sh $1 ; echo ""
+./experiment_scripts/configure_folder.sh $1
 
 if [ $2 == "centralized" ]; then
   # Configure the experiment folder.
-  sudo ./experiment_scripts/enable_centralized.sh; echo ""
+  echo $(cat node_user_password.txt) | sudo -S ./experiment_scripts/enable_centralized.sh
   else
     # Configure the experiment folder.
-    sudo ./experiment_scripts/enable_distributed.sh; echo ""
+    echo $(cat node_user_password.txt) | sudo -S ./experiment_scripts/enable_distributed.sh
   fi
 
 # Start the orchestrator.
-sudo ./experiment_scripts/start_orchestrator.sh "'$3'"
+echo $(cat node_user_password.txt) | sudo -S ./experiment_scripts/start_orchestrator.sh "'$3'"
