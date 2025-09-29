@@ -17,6 +17,16 @@ mod log_writer;
 /// Example of invocation: ./app_lev_orc config_file.conf
 fn main ()
 {
+
+    #[cfg(feature = "timing_log")]
+    println!("timing_log : ACTIVE");
+    #[cfg(feature = "centralized")]
+    println!("centralized : ACTIVE");
+    #[cfg(feature = "distributed")]
+    println!("distributed : ACTIVE");
+    #[cfg(feature = "print_log")]
+    println!("print_log : ACTIVE");
+
     // Parse input arguments.
     let args: Vec<String> = std::env::args ().collect ();
 
