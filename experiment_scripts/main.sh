@@ -28,14 +28,15 @@ for mode in $modes; do
   echo "START EXPERIMENT 1"
   for line in $(cat experiment_data/distances.txt); do
     # Read the three states.
-    read state_1 state_2 new_state_2 state_3 request <<< $line
+    # read state_1 state_2 new_state_2 state_3 request <<< $line
 
+    request="2#[0;100;128;(1.5,2.0);2.0]"
     echo $request
 
     # Produce the node states.
-    node_state_1="[$state_1;1]"
-    node_state_2="[$state_2;$su_factor_2]"
-    node_state_3="[$state_3;$su_factor_3]"
+    # node_state_1="[$state_1;1]"
+    # node_state_2="[$state_2;$su_factor_2]"
+    # node_state_3="[$state_3;$su_factor_3]"
 
     # Configure the experiment folder.
     echo "CONFIGURE EXPERIMENT FOLDER"
