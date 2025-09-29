@@ -24,9 +24,14 @@ echo "LP TASKS STARTED"
 declare -a modes=("centralized" "distributed")
 for mode in $modes; do
 
+  echo "MODES IS $mode"
+
   # First experiment.
   echo "START EXPERIMENT 1"
   for line in $(cat experiment_data/distances.txt); do
+
+    echo "LINE IS $line"
+
     # Read the three states.
     # read state_1 state_2 new_state_2 state_3 request <<< $line
 
