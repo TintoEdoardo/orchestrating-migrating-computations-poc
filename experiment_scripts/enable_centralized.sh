@@ -3,6 +3,6 @@
 # This script should be started from the
 #  root directory (".." from here).
 
-cd experiments
+cd experiment_folder
 rm app_lev_orc &> /dev/null
 cp app_lev_orc_c app_lev_orc

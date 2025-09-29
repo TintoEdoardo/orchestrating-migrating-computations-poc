@@ -4,15 +4,9 @@
 #  root directory (".." from here).
 
 # Start the orchestrator (from the nodes in my cluster).
-# $1 : index of the current node.
-# $2 : node state => "[(1.2,3.4);0.5]"
-# $3 : is controller? (only for centralized)
+# $1 : node_i.conf
 
-ip="$(hostname -I)"
-ip="${ip% }"
+cd experiment_folder
+./app_lev_orc $1 & pid=$!
 
-
-echo "CALLING : ./experiments/app_lev_orc '"$ip:8080"' '"192.168.1.210"' $1 0 '"$2"' 2 $3"
-./experiments/app_lev_orc 3 "$ip:8080" "192.168.1.210" $1 0 "$2" 2 $3 & pid=$!
-
-echo $pid > experiments/pid.txt
+echo $pid > pid.txt

@@ -16,9 +16,9 @@ pwd_ns=$(cat node_user_password.txt)
 
 # Start the low priority task.
 echo "START LP TASKS"
-sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 3600 experiment_script/lp_task_aarch64"
-sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 3600 experiment_script/lp_task_aarch64"
-sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 3600 experiment_script/lp_task_aarch64"
+sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 3600 experiment_scripts/lp_task_aarch64"
+sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 3600 experiment_scripts/lp_task_aarch64"
+sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 3600 experiment_scripts/lp_task_aarch64"
 echo "LP TASKS STARTED"
 
 declare -a modes=("centralized" "distributed")
@@ -37,28 +37,28 @@ for mode in $modes; do
 
     # Configure the experiment folder.
     echo "CONFIGURE EXPERIMENT FOLDER"
-    sshpass -f node_user_password.txt ssh ubuntu@$node_1 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_script/configure_folder.sh 0' &> /dev/null
-    sshpass -f node_user_password.txt ssh ubuntu@$node_2 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_script/configure_folder.sh 1' &> /dev/null
-    sshpass -f node_user_password.txt ssh ubuntu@$node_3 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_script/configure_folder.sh 0' &> /dev/null
+    sshpass -f node_user_password.txt ssh ubuntu@$node_1 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/configure_folder.sh 0' &> /dev/null
+    sshpass -f node_user_password.txt ssh ubuntu@$node_2 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/configure_folder.sh 1' &> /dev/null
+    sshpass -f node_user_password.txt ssh ubuntu@$node_3 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/configure_folder.sh 0' &> /dev/null
     echo "EXPERIMENT FOLDER CONFIGURED"
 
     if [ $mode == "centralized" ]; then
         # Configure the experiment folder.
-        sshpass -f node_user_password.txt ssh ubuntu@$node_1 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_script/enable_centralized.sh'
-        sshpass -f node_user_password.txt ssh ubuntu@$node_2 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_script/enable_centralized.sh'
-        sshpass -f node_user_password.txt ssh ubuntu@$node_3 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_script/enable_centralized.sh'
+        sshpass -f node_user_password.txt ssh ubuntu@$node_1 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/enable_centralized.sh'
+        sshpass -f node_user_password.txt ssh ubuntu@$node_2 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/enable_centralized.sh'
+        sshpass -f node_user_password.txt ssh ubuntu@$node_3 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/enable_centralized.sh'
       else
         # Configure the experiment folder.
-        sshpass -f node_user_password.txt ssh ubuntu@$node_1 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_script/enable_decentralized.sh'
-        sshpass -f node_user_password.txt ssh ubuntu@$node_2 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_script/enable_decentralized.sh'
-        sshpass -f node_user_password.txt ssh ubuntu@$node_3 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_script/enable_decentralized.sh'
+        sshpass -f node_user_password.txt ssh ubuntu@$node_1 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/enable_decentralized.sh'
+        sshpass -f node_user_password.txt ssh ubuntu@$node_2 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/enable_decentralized.sh'
+        sshpass -f node_user_password.txt ssh ubuntu@$node_3 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/enable_decentralized.sh'
       fi
 
     # Start the orchestrator.
     echo "START ORCHESTRATOR"
-    sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S experiment_script/start_orchestrator.sh 0 $node_state_1 1"
-    sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S experiment_script/start_orchestrator.sh 1 $node_state_2 0"
-    sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S experiment_script/start_orchestrator.sh 2 $node_state_3 0"
+    sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S experiment_scripts/start_orchestrator.sh 'node_0'"
+    sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S experiment_scripts/start_orchestrator.sh 'node_1'"
+    sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S experiment_scripts/start_orchestrator.sh 'node_2'"
     echo "ORCHESTRATION STARTED"
 
     # Start the experiment.
@@ -70,9 +70,9 @@ for mode in $modes; do
 
     # Stop the orchestrator.
     echo "STOP ORCHESTRATOR"
-    sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_script/stop_orchestrator.sh"
-    sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_script/stop_orchestrator.sh"
-    sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_script/stop_orchestrator.sh"
+    sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/stop_orchestrator.sh"
+    sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/stop_orchestrator.sh"
+    sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/stop_orchestrator.sh"
     echo "ORCHESTRATOR STOPPED"
   done
 

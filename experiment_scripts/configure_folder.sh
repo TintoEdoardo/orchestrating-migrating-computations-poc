@@ -25,3 +25,7 @@ else
 fi
 cp out/app_lev_orc_aarch64_c experiment_folder/app_lev_orc_c
 cp out/app_lev_orc_aarch64_d experiment_folder/app_lev_orc_d
+
+cp experiment_data/nodes_conf/node_0 experiment_folder/node_0
+cp experiment_data/nodes_conf/node_1 experiment_folder/node_1
+cp experiment_data/nodes_conf/node_2 experiment_folder/node_2
