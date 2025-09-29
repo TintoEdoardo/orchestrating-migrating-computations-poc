@@ -12,7 +12,7 @@ chmod u+x experiment_scripts/enable_centralized.sh
 chmod u+x experiment_scripts/enable_distributed.sh
 
 # Remove any existing folder.
-rm -r expericment_folder
+rm -r experiment_folder
 
 # Create a folder for running the experiments.
 mkdir experiment_folder
