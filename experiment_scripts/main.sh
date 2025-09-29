@@ -30,6 +30,8 @@ for mode in $modes; do
     # Read the three states.
     read state_1 state_2 new_state_2 state_3 request <<< $line
 
+    echo $request
+
     # Produce the node states.
     node_state_1="[$state_1;1]"
     node_state_2="[$state_2;$su_factor_2]"
