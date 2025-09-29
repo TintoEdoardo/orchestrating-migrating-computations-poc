@@ -28,7 +28,7 @@ for mode in $modes; do
 
   # First experiment.
   echo "START EXPERIMENT 1"
-  for line in $(cat experiment_data/distances.txt); do
+  while read line; do
 
     echo "LINE IS $line"
 
@@ -82,7 +82,7 @@ for mode in $modes; do
     sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/stop_orchestrator.sh"
     sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/stop_orchestrator.sh"
     echo "ORCHESTRATOR STOPPED"
-  done
+  done<experiment_data/distances.txt
 
   echo "END OF EXPERIMENT 1"
 
