@@ -37,9 +37,9 @@ for mode in $modes; do
 
     # Configure the experiment folder.
     echo "CONFIGURE EXPERIMENT FOLDER"
-    sshpass -f node_user_password.txt ssh ubuntu@$node_1 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/configure_folder.sh 0' &> /dev/null
-    sshpass -f node_user_password.txt ssh ubuntu@$node_2 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/configure_folder.sh 1' &> /dev/null
-    sshpass -f node_user_password.txt ssh ubuntu@$node_3 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/configure_folder.sh 0' &> /dev/null
+    sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/configure_folder.sh 0" &> /dev/null
+    sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/configure_folder.sh 1" &> /dev/null
+    sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/configure_folder.sh 0" &> /dev/null
     echo "EXPERIMENT FOLDER CONFIGURED"
 
     if [ $mode == "centralized" ]; then
