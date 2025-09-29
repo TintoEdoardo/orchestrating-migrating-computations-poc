@@ -41,9 +41,16 @@ pub fn save_admm_data (is_centralized    : bool,
             .expect ("Failed to open ../experiment_data/iterations_d.txt")
     };
 
+    println!("Convergence micros: {}", convergence_micros);
+    println!("Iterations num: {}", iterations_num);
+
     // Then add the metrics acquired.
-    writeln!(convergence, "{}", convergence_micros)
+    convergence.write (convergence_micros.to_string ().as_bytes ())
+        .expect("Unable to write in convergence file. ");
+    iterations.write (iterations_num.to_string ().as_bytes ())
+        .expect("Unable to write in iterations file. ");
+    /* writeln!(convergence, "{}", convergence_micros)
         .expect("Unable to write in convergence file. ");
     writeln!(iterations, "{}", iterations_num)
-        .expect("Unable to write in iterations file. ");
+        .expect("Unable to write in iterations file. "); */
 }
