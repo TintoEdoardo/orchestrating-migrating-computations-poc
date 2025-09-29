@@ -52,14 +52,14 @@ for mode in "${modes[@]}"s; do
 
     if [ $mode == "centralized" ]; then
         # Configure the experiment folder.
-        sshpass -f node_user_password.txt ssh ubuntu@$node_1 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/enable_centralized.sh'
-        sshpass -f node_user_password.txt ssh ubuntu@$node_2 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/enable_centralized.sh'
-        sshpass -f node_user_password.txt ssh ubuntu@$node_3 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/enable_centralized.sh'
+        sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/enable_centralized.sh"
+        sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/enable_centralized.sh"
+        sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/enable_centralized.sh"
       else
         # Configure the experiment folder.
-        sshpass -f node_user_password.txt ssh ubuntu@$node_1 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/enable_decentralized.sh'
-        sshpass -f node_user_password.txt ssh ubuntu@$node_2 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/enable_decentralized.sh'
-        sshpass -f node_user_password.txt ssh ubuntu@$node_3 'cd orchestrating-migrating-computations-poc; screen -d -m experiment_scripts/enable_decentralized.sh'
+        sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/enable_decentralized.sh"
+        sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/enable_decentralized.sh"
+        sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m experiment_scripts/enable_decentralized.sh"
       fi
 
     # Start the orchestrator.
