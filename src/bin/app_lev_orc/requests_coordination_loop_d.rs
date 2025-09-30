@@ -62,7 +62,7 @@ impl ControlSystem
                 node_index       : usize,
                 priority         : i32,
                 affinity         : usize,
-                ip_and_port      : String,
+                local_ip         : String,
                 broker_address   : String) -> Self
     {
 
@@ -70,7 +70,8 @@ impl ControlSystem
         println! ("requests_coordination_loop - new START");
 
         // Initialization.
-        let host = format! ("mqtt://{}:1883", broker_address).to_string ();
+        let host        = format! ("mqtt://{}:1883", broker_address).to_string ();
+        let ip_and_port = format! ("{}:8888", local_ip).to_string ();
 
         let client_id = format! ("node_{}_app_{}_rcl", node_index, application_index);
 
