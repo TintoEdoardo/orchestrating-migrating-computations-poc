@@ -74,7 +74,7 @@ for mode in "${modes[@]}"s; do
     # mosquitto_pub -h $node_1 -t node_state_2 -m "$new_state_2"
 
     # Pause to allow for convergence.
-    sleep 5s
+    sleep 10s
 
     # Stop the orchestrator.
     echo "STOP ORCHESTRATOR"
