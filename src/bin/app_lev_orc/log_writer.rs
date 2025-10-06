@@ -50,9 +50,5 @@ pub fn save_admm_data (is_centralized    : bool,
     convergence.write (b"\n").expect ("Filed to add newline. ");
     iterations.write (iterations_num.to_string ().as_bytes ())
         .expect("Unable to write in iterations file. ");
-    convergence.write (b"\n").expect ("Filed to add newline. ");
-    /* writeln!(convergence, "{}", convergence_micros)
-        .expect("Unable to write in convergence file. ");
-    writeln!(iterations, "{}", iterations_num)
-        .expect("Unable to write in iterations file. "); */
+    iterations.write (b"\n").expect ("Filed to add newline. ");
 }
