@@ -25,5 +25,6 @@ if [ $2 == "centralized" ]; then
     echo $(cat node_user_password.txt) | sudo -S ./experiment_scripts/enable_distributed.sh
   fi
 
-# Start the orchestrator.
-# echo $(cat node_user_password.txt) | sudo -S ./experiment_folder/app_lev_orc "'$3'"
+# Start the experiment.
+cd experiment_folder/
+sudo ./app_lev_orc $3
