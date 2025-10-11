@@ -25,7 +25,7 @@ pub struct SporadicServer
     period      : std::time::Duration,
 
     /// Priority of the server when running.
-    priority    : u32,
+    pub priority    : u32,
 }
 
 impl SporadicServer
@@ -36,11 +36,16 @@ impl SporadicServer
     {
         Self
         {
-            id: utilities::get_platform_tid (),
+            id: 0,
             budget,
             period,
             priority,
         }
+    }
+
+    pub fn set_id (&mut self, id: u32)
+    {
+        self.id = id;
     }
 
     pub fn start (&mut self,
@@ -67,7 +72,7 @@ impl SporadicServer
 
     fn lower_priority (&self)
     {
-        utilities::set_niceness (self.id, 15);
+        utilities::set_niceness (self.id, 19);
     }
 
     fn rise_priority (&self)
@@ -212,7 +217,7 @@ impl SporadicServerController
         let clock = std::time::Instant::now ();
         // This is correct only when the server task is
         // not interfered. Otherwise, the real budget is
-        // higher than this. This is a safe higher bound.
+        // higher than this. This is a safe upper bound.
         clock - self.release_time
     }
 
@@ -222,7 +227,7 @@ impl SporadicServerController
         // the correct value in case of interference.
         let clock = std::time::Instant::now ();
         self.start_budget.checked_sub (clock - self.release_time)
-            .unwrap_or (std::time::Duration::from_millis (0))
+            .unwrap_or (std::time::Duration::ZERO)
     }
 
     // Invoked by the server task, before starting the execution
@@ -249,18 +254,18 @@ impl SporadicServerController
         {
             event_type: EventType::BudgetExhausted,
             event_time: self.release_time.add (remaining_budget),
-            budget    : std::time::Duration::from_millis (0),
+            budget    : std::time::Duration::ZERO,
         };
         self.be_event_queue.push_back (next_be_event);
 
         // Add an event for the next release event of the server task.
-        let next_release_event = Event
+        let _next_release_event = Event
         {
             event_type: EventType::ReleaseEvent,
             event_time: self.release_time.add (server.period),
             budget    : std::cmp::min (consumed_budget, server.budget),
         };
-        self.r_event_queue.push_back (next_release_event);
+        // self.r_event_queue.push_back (next_release_event);
 
         // Here, we are not sure if any migrating request is
         // enqueued: hence, suspend the controller until further
@@ -438,116 +443,5 @@ impl SporadicServerController
                 }
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests
-{
-    use super::*;
-
-    #[test]
-    fn main ()
-    {
-        println!("START TEST SUITE");
-
-        // The number of pending migration requests.
-        let reqs_enqueued =
-            std::sync::Arc::new ((std::sync::Mutex::new (10u8), std::sync::Condvar::new ()));
-
-        // The state of the server task (is it running?).
-        let is_server_running =
-            std::sync::Arc::new ((std::sync::Mutex::new (false), std::sync::Condvar::new ()));
-
-        let controller =
-            std::sync::Arc::new (
-                std::sync::Mutex::new (
-                    SporadicServerController::new(reqs_enqueued.clone (),
-                                                  is_server_running.clone ())
-                )
-            );
-
-        let mut server = SporadicServer::new (
-            std::time::Duration::from_millis (20),
-            std::time::Duration::from_millis (100),
-            80u32);
-
-        let first_controller = controller.clone ();
-        let first_is_server_running = is_server_running.clone ();
-        let mut handles = vec![];
-        let controller_handle = std::thread::spawn( move ||
-            {
-                // Initialization.
-                unsafe
-                    {
-
-                        // Scheduling properties.
-                        let tid = libc::gettid ();
-                        let sched_param = libc::sched_param
-                        {
-                            sched_priority: 89 as libc::c_int,
-                        };
-                        libc::sched_setscheduler (tid, libc::SCHED_FIFO, &sched_param);
-
-                        // Affinity.
-                        let mut cpuset : libc::cpu_set_t = std::mem::zeroed ();
-                        libc::CPU_ZERO (&mut cpuset);
-                        libc::CPU_SET (8, &mut cpuset);
-                        libc::sched_setaffinity (tid, size_of::<libc::cpu_set_t> (), &mut cpuset);
-                    }
-
-                SporadicServerController::start (first_controller, first_is_server_running)
-            });
-        handles.push (controller_handle);
-
-        struct MyWorkload {}
-        impl Workload for MyWorkload
-        {
-            #[allow(unused_assignments)]
-            fn exec_workload(&mut self)
-            {
-                let mut res = 0;
-                for i in 0..1000
-                {
-                    res = i + 1 - (res / i);
-                }
-                if res > 0
-                {
-                    res = 0;
-                }
-            }
-        }
-
-        let mut workload : MyWorkload = MyWorkload {};
-
-        let server_handle = std::thread::spawn (move ||
-            {
-                // Initialization.
-                unsafe
-                    {
-
-                        // Scheduling properties.
-                        let tid = libc::gettid ();
-                        let sched_param = libc::sched_param
-                        {
-                            sched_priority: server.priority as libc::c_int,
-                        };
-                        libc::sched_setscheduler (tid, libc::SCHED_FIFO, &sched_param);
-
-                        // Affinity.
-                        let mut cpuset : libc::cpu_set_t = std::mem::zeroed ();
-                        libc::CPU_ZERO (&mut cpuset);
-                        libc::CPU_SET (8, &mut cpuset);
-                        libc::sched_setaffinity (tid, size_of::<libc::cpu_set_t> (), &mut cpuset);
-                    }
-                server.start(controller.clone (), &mut workload);
-            });
-        handles.push (server_handle);
-
-        for handle in handles
-        {
-            handle.join ().unwrap ();
-        }
-
     }
 }

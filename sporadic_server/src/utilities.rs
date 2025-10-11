@@ -2,6 +2,7 @@
 /*          U T I L I T I E S          */
 /***************************************/
 
+#[allow(dead_code)]
 pub(crate) fn get_platform_tid () -> u32
 {
     unsafe

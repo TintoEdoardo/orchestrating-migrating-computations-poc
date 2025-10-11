@@ -6,6 +6,10 @@ edition = "2024"
 [dependencies]
 libc = "1.0.0-alpha.1"
 
+[[bin]]
+name = "sporadic_server"
+path = "src/main.rs"
+
 [features]
 default = ["timing_log"]
 print_log = []

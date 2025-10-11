@@ -9,10 +9,9 @@ fn main ()
     // Fix the priority.
     let sched_param = libc::sched_param
     {
-        sched_priority: 0 as libc::c_int,
+        sched_priority: 20 as libc::c_int,
     };
-    unsafe { libc::sched_setscheduler (pid, libc::SCHED_OTHER, &sched_param); }
-    unsafe { libc::nice (-20); }
+    unsafe { libc::sched_setscheduler (pid, libc::SCHED_FIFO, &sched_param); }
 
     // Then loop forever.
     loop
