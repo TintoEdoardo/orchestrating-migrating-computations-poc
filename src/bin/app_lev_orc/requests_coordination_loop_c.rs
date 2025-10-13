@@ -62,6 +62,7 @@ impl ControlSystem
                 node_index       : usize,
                 priority         : i32,
                 affinity         : usize,
+                penalty          : f32,
                 local_ip         : String,
                 broker_address   : String) -> Self
     {
@@ -143,7 +144,7 @@ impl ControlSystem
             priority,
             affinity,
             application_index,
-            penalty         : 20.0,
+            penalty,
             etc_multiplier  : 0.05,
             iteration_limit : 20,
         }

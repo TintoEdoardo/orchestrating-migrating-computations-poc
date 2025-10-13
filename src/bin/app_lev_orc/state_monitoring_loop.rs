@@ -99,7 +99,7 @@ impl ControlSystem
                 // Make the connection to the broker.
                 self.client.connect (conn_opts).await?;
 
-                let sub_opts = vec![mqtt::SubscribeOptions::with_retain_as_published(); 2];
+                let sub_opts = vec![mqtt::SubscribeOptions::with_retain_as_published (); 2];
                 self.client.subscribe_many_with_options (
                     &[self.topic.clone ()],
                     &[mqtt::QOS_1],
@@ -141,7 +141,7 @@ impl ControlSystem
                 Ok::<(), mqtt::Error> (())
         }) 
         {
-           eprintln! ("state_monitoring_loop - error creating the client: {:?}", err);
+           println! ("state_monitoring_loop - error creating the client: {:?}", err);
         }
     }
 }

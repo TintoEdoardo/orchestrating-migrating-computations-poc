@@ -115,7 +115,7 @@ impl std::str::FromStr for NodeState
         let trimmed_s = s.replace ('[', "").replace (']', "");
         let fields : Vec<&str> = trimmed_s.split_terminator (';').collect ();
 
-        match (fields.first(), fields.last())
+        match (fields.first (), fields.last ())
         {
             (Some (&coord), Some (&speedup_factor)) => Ok (
                 NodeState
@@ -143,7 +143,7 @@ impl std::fmt::Display for NodeState
 {
     fn fmt (&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
     {
-        write! (f, "{}", format! ("({},{})", self.node_coords.x, self.node_coords.y))
+        write! (f, "{}", format! ("[({},{});{}]", self.node_coords.x, self.node_coords.y, self.speedup_factor))
     }
 }
 

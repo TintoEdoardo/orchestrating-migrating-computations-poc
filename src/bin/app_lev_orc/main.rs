@@ -35,6 +35,7 @@ fn main ()
     let node_address     : String;
     let node_state       : state::NodeState;
     let affinity         : usize;
+    let penalty          : f32;
     let node_number      : usize;
     let broker_address   : String;
     let is_controller    : bool;
@@ -50,10 +51,12 @@ fn main ()
         .parse ().expect ("Failed to parse node_state. ");
     affinity          = lines.get (4).expect ("Failed to read affinity. ")
         .parse ().expect ("Failed to parse affinity. ");
-    node_number       = lines.get (5).expect ("Failed to read node_number. ")
+    penalty          = lines.get (5).expect ("Failed to read affinity. ")
+        .parse ().expect ("Failed to parse affinity. ");
+    node_number       = lines.get (6).expect ("Failed to read node_number. ")
         .parse ().expect ("Failed to parse node_number. ");
-    broker_address    = lines.get (6).expect ("Failed to read broker_address").clone ();
-    match lines.get (7)
+    broker_address    = lines.get (7).expect ("Failed to read broker_address").clone ();
+    match lines.get (8)
     {
         None =>
             {
@@ -121,6 +124,7 @@ fn main ()
                                                           node_index,
                                                           45,
                                                           affinity,
+                                                          penalty,
                                                           node_address.to_string (),
                                                           broker_address.clone ());
 
@@ -132,6 +136,7 @@ fn main ()
                                                           node_index,
                                                           45,
                                                           affinity,
+                                                          penalty,
                                                           node_address.to_string (),
                                                           broker_address.clone ());
 
