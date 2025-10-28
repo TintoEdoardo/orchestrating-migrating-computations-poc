@@ -606,6 +606,9 @@ impl ControlSystem
 
                                     // Then receive the bytecode (and checkpoint).
 
+                                    #[cfg(feature = "print_log")]
+                                    println! ("requests_coordination_loop - self.ip_and_port = {}", self.ip_and_port.to_string ());
+
                                     // Open a TCP stream for receiving the data.
                                     let listener =
                                         std::net::TcpListener::bind (self.ip_and_port.to_string ())
@@ -764,6 +767,10 @@ impl ControlSystem
                         // a migration.
                         let state =
                             application_state.lock ().unwrap ();
+
+                        #[cfg(feature = "print_log")]
+                        println! ("requests_coordination_loop - state.requests_by_dct.len () = {}", state.requests_by_dct.len ());
+
                         match state.requests_by_dct.first ()
                         {
                             Some (&request_index) =>

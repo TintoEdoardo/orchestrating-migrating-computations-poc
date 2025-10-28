@@ -255,7 +255,7 @@ impl std::str::FromStr for Request
         let mut index                   : usize = 0;
         let mut execution_time          : u32   = 0;
         let mut desired_completion_time : u32   = 0;
-        let mut migratable_up_to        : usize   = 0;
+        let mut migratable_up_to        : usize = 0;
         let mut required_memory         : u32   = 0;
         let mut desired_coord           : Coord = Coord { x: -1.0, y: -1.0 };
         let mut threshold               : f32   = 0.0;
@@ -296,7 +296,7 @@ impl std::str::FromStr for Request
                     .expect ("Unable to convert des_com_time to u32");
 
                 migratable_up_to = usize::from_str (mig_up_to)
-                    .expect ("Unable to convert mig_up_to u32");
+                    .expect ("Unable to convert mig_up_to to usize");
 
                 required_memory = u32::from_str (req_memory)
                     .expect ("Unable to convert req_memory to u32");
@@ -620,6 +620,8 @@ impl ApplicationState
         {
             Some(request) =>
                 {
+                    #[cfg(feature = "print_log")]
+                    println! ("request.migratable_up_to = {}; request.current_region = {}", request.migratable_up_to, request.current_region);
                     request.migratable_up_to > request.current_region
                 }
             None =>
@@ -630,17 +632,7 @@ impl ApplicationState
     }
     pub fn get_should_migrate_of_request (&mut self, request_index : usize) -> bool
     {
-        let mut should_migrate : bool  = false;
-        for i in 0..self.requests.len ()
-        {
-            if self.requests[i].index == request_index
-            {
-                should_migrate =
-                    self.requests[i].should_migrate &&
-                        (self.requests[i].migratable_up_to > self.requests[i].current_region);
-            }
-        }
-        should_migrate
+        self.get_request (request_index).unwrap ().should_migrate
     }
 
     pub fn set_should_migrate_of_request (&mut self, request_index : usize, should_migrate : bool)

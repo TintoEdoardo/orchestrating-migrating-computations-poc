@@ -37,6 +37,9 @@ pub fn load_config (config_file: String) -> Vec<String>
 
     for line in buf_reader.lines ()
     {
+        #[cfg(feature = "print_log")]
+        println!("line = {:?}", line);
+
         lines.push (line.unwrap ());
     }
 

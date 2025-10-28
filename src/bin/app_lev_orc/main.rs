@@ -56,6 +56,13 @@ fn main ()
     node_number       = lines.get (6).expect ("Failed to read node_number. ")
         .parse ().expect ("Failed to parse node_number. ");
     broker_address    = lines.get (7).expect ("Failed to read broker_address").clone ();
+
+    #[cfg(feature = "print_log")]
+    {
+        println!("node_index = {} - application_index = {}", node_index, application_index);
+        println!("node_address = {} - node_state = {}", node_address, node_state);
+    }
+
     match lines.get (8)
     {
         None =>
