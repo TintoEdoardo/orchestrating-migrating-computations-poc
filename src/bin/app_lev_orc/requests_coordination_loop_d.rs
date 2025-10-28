@@ -10,6 +10,7 @@ use crate::{admm_solver::{GlobalSolver, LocalSolver},
 use crate::mqtt_utils::MessageLocal;
 use crate::linux_utils;
 use crate::log_writer;
+use crate::state::MessageRequest;
 
 /// Data and functions associated with the
 /// requests_coordination_loop.
@@ -180,7 +181,9 @@ impl ControlSystem
             let mut dest_node          : Option<usize>;
 
             #[cfg(feature = "timing_log")]
-            let mut start_time = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+            let mut start_time    = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+            let mut start_send    = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+            let mut start_receive = libc::timespec { tv_sec: 0, tv_nsec: 0 };
 
             #[cfg(feature = "print_log")]
             println! ("requests_coordination_loop - LOOP");
@@ -334,6 +337,12 @@ impl ControlSystem
                                             if src == self.node_index
                                             {
 
+                                                #[cfg(feature = "timing_log")]
+                                                unsafe
+                                                    {
+                                                        libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut start_send);
+                                                    }
+
                                                 #[cfg(feature = "print_log")]
                                                 println! ("requests_coordination_loop - src == self.node_index");
 
@@ -344,11 +353,24 @@ impl ControlSystem
                                                     println! ("requests_coordination_loop - src == dest");
 
                                                     // The migration is not convenient after all.
-                                                    // TODO: what to do here?
+                                                    // Continue as usual.
 
                                                 }
                                                 else
                                                 {
+                                                    // The migration is convenient.
+                                                    // First, prepare for the checkpoint.
+                                                    let mut state =
+                                                        application_state.lock ().unwrap ();
+                                                    let index_incoming_request =
+                                                        incoming_request.unwrap ().get_index ();
+                                                    if index_incoming_request ==
+                                                        state.requests.first().unwrap ().get_index ()
+                                                    {
+                                                        state.set_should_migrate_of_request (index_incoming_request, true);
+                                                    }
+                                                    drop (state);
+
                                                     let dest_topic = format! ("{}/{}",
                                                                               "federation/dst",
                                                                               dest_node.expect ("Missing dst node. "));
@@ -545,6 +567,12 @@ impl ControlSystem
                                     // Do nothing.
                                 }
                         }
+
+                        #[cfg(feature = "timing_log")]
+                        {
+                            let send_time = linux_utils::get_completion_time (start_send);
+                            log_writer::save_send_time (send_time);
+                        }
                     }
                     // federation/dst/i -> ip:port.
                     else if msg.topic () == self.topics[3]
@@ -552,6 +580,12 @@ impl ControlSystem
 
                         #[cfg(feature = "print_log")]
                         println! ("requests_coordination_loop - federation/dst RECEIVE");
+
+                        #[cfg(feature = "timing_log")]
+                        unsafe
+                            {
+                                libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut start_receive);
+                            }
 
                         match incoming_request
                         {
@@ -705,6 +739,49 @@ impl ControlSystem
                                     #[cfg(feature = "print_log")]
                                     println! ("requests_coordination_loop - incoming_request = None");
 
+                                }
+                            None =>
+                                {
+                                    // Do nothing.
+                                }
+                        }
+
+
+                        #[cfg(feature = "timing_log")]
+                        {
+                            let receive_time = linux_utils::get_completion_time (start_receive);
+                            log_writer::save_receive_time (receive_time);
+                        }
+                    }
+                    // federation/node_available -> node_index
+                    else if msg.topic () == "federation/node_available"
+                    {
+                        #[cfg(feature = "print_log")]
+                        println! ("requests_coordination_loop - federation/node_available");
+
+                        // Pick the request that would benefit the most from
+                        // a migration.
+                        let state =
+                            application_state.lock ().unwrap ();
+                        match state.requests_by_dct.first ()
+                        {
+                            Some (&request_index) =>
+                                {
+                                    // Check if the computation has enough remaining computation
+                                    // to benefit from a migration.
+                                    if state.is_request_migratable (request_index)
+                                    {
+                                        // Start a migration.
+                                        let request = *state.get_request (request_index)
+                                            .expect ("Unable to find request from request_index");
+                                        let message_request =
+                                            MessageRequest::new (self.node_index, request);
+                                        let msg = mqtt::Message::new (
+                                            "federation/migration".to_string (),
+                                            message_request.to_string (),
+                                            paho_mqtt::QOS_1);
+                                        self.client.publish (msg);
+                                    }
                                 }
                             None =>
                                 {

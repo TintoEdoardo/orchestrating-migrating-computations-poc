@@ -215,7 +215,9 @@ impl ControlSystem
             let mut dest_node          : Option<usize>;
 
             #[cfg(feature = "timing_log")]
-            let mut start_time = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+            let mut start_time    = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+            let mut start_send    = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+            let mut start_receive = libc::timespec { tv_sec: 0, tv_nsec: 0 };
 
             #[cfg(feature = "print_log")]
             println! ("requests_coordination_loop - LOOP");
@@ -455,6 +457,12 @@ impl ControlSystem
                                         if src == self.node_index
                                         {
 
+                                            #[cfg(feature = "timing_log")]
+                                            unsafe
+                                                {
+                                                    libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut start_send);
+                                                }
+
                                             #[cfg(feature = "print_log")]
                                             println! ("requests_coordination_loop - src == self.node_index");
 
@@ -639,6 +647,12 @@ impl ControlSystem
                                     // Do nothing.
                                 }
                         }
+
+                        #[cfg(feature = "timing_log")]
+                        {
+                            let send_time = linux_utils::get_completion_time (start_send);
+                            log_writer::save_send_time (send_time);
+                        }
                     }
                     // federation/dst/i -> ip:port.
                     else if msg.topic () == federation_dst
@@ -646,6 +660,12 @@ impl ControlSystem
 
                         #[cfg(feature = "print_log")]
                         println! ("requests_coordination_loop - federation/dst RECEIVE");
+
+                        #[cfg(feature = "timing_log")]
+                        unsafe
+                            {
+                                libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut start_receive);
+                            }
 
                         match incoming_request
                         {
@@ -804,6 +824,12 @@ impl ControlSystem
                                 {
                                     // Do nothing.
                                 }
+                        }
+
+                        #[cfg(feature = "timing_log")]
+                        {
+                            let receive_time = linux_utils::get_completion_time (start_receive);
+                            log_writer::save_receive_time (receive_time);
                         }
                     }
                 }

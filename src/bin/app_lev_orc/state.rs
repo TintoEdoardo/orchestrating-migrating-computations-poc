@@ -159,6 +159,13 @@ pub struct Request
     /// Estimated WCET in millisec (ms).
     execution_time  : u32,
 
+    /// Desired completion time.
+    desired_completion_time : u32,
+
+    /// Migratable up to this checkpoint. From there on
+    /// it is not convenient to migrate.
+    migratable_up_to : usize,
+
     /// Required memory in kB.
     required_memory : u32,
 
@@ -173,20 +180,41 @@ pub struct Request
 
     /// Migration flag: 'true' that this request has
     /// to migrate.
-    should_migrate  : bool
+    should_migrate  : bool,
+
+    /// Current region.
+    current_region  : usize,
+
+    /// Arrival time.
+    arrival_time    : std::time::Instant
 }
 
 impl Request
 {
     #[allow(dead_code)]
     pub fn new_from (
-        index           : usize,
-        execution_time  : u32,
-        required_memory : u32,
-        desired_coord   : Coord,
-        threshold       : f32) -> Self
+        index                   : usize,
+        execution_time          : u32,
+        desired_completion_time : u32,
+        migratable_up_to        : usize,
+        required_memory         : u32,
+        desired_coord           : Coord,
+        threshold               : f32,
+        current_region          : usize) -> Self
     {
-        Self { index, execution_time, required_memory, desired_coord, threshold, should_migrate : false }
+        Self
+        {
+            index,
+            execution_time,
+            desired_completion_time,
+            migratable_up_to,
+            required_memory,
+            desired_coord,
+            threshold,
+            should_migrate : false,
+            current_region,
+            arrival_time   : std::time::Instant::now ()
+        }
     }
 
     pub fn set_should_migrate (&mut self, migrate : bool)
@@ -219,14 +247,19 @@ impl std::str::FromStr for Request
 {
     type Err = std::string::ParseError;
 
-    /// Expected string: '\[us; u32; u32; (f32, f32); f32\]'
+    /// Expected string:
+    /// [index; execution_time; desired_completion_time; migratable_up_to; required_memory; (desired_coord); threshold; current_region]
+    /// '\[usize; u32; u32; usize; u32; (f32, f32); f32; f32\]'
     fn from_str(s: &str) -> Result<Self, Self::Err>
     {
-        let mut index           : usize = 0;
-        let mut execution_time  : u32   = 0;
-        let mut required_memory : u32   = 0;
-        let mut desired_coord   : Coord = Coord { x: -1.0, y: -1.0 };
-        let mut threshold       : f32   = 0.0;
+        let mut index                   : usize = 0;
+        let mut execution_time          : u32   = 0;
+        let mut desired_completion_time : u32   = 0;
+        let mut migratable_up_to        : usize   = 0;
+        let mut required_memory         : u32   = 0;
+        let mut desired_coord           : Coord = Coord { x: -1.0, y: -1.0 };
+        let mut threshold               : f32   = 0.0;
+        let mut current_region          : usize = 0;
 
         let trimmed_s = s.replace ('[', "").replace (']', "");
         let fields : Vec<&str> = trimmed_s.split_terminator (';').collect ();
@@ -237,30 +270,45 @@ impl std::str::FromStr for Request
             fields.get (1),
             fields.get (2),
             fields.get (3),
-            fields.get (4)
+            fields.get (4),
+            fields.get (5),
+            fields.get (6),
+            fields.get (7)
         )
         {
             (
                 Some (&req_index),
                 Some (&exec_time),
+                Some (&des_com_time),
+                Some (&mig_up_to),
                 Some (&req_memory),
                 Some (&des_coord),
-                Some (&thresh)
+                Some (&thresh),
+                Some (&cur_region)
             ) => {
                 index           = usize::from_str (req_index)
                     .expect ("Failed to parse index. ");
 
-                execution_time  = u32::from_str(exec_time)
+                execution_time  = u32::from_str (exec_time)
                     .expect ("Unable to convert exec_time to u32");
 
-                required_memory = u32::from_str(req_memory)
+                desired_completion_time = u32::from_str (des_com_time)
+                    .expect ("Unable to convert des_com_time to u32");
+
+                migratable_up_to = usize::from_str (mig_up_to)
+                    .expect ("Unable to convert mig_up_to u32");
+
+                required_memory = u32::from_str (req_memory)
                     .expect ("Unable to convert req_memory to u32");
 
-                desired_coord   = Coord::from_str(des_coord)
+                desired_coord   = Coord::from_str (des_coord)
                         .expect ("Unable to convert des_coord to Coord");
 
                 threshold       = f32::from_str(thresh)
                     .expect ("Unable to convert thresh to f32");
+
+                current_region  = usize::from_str (cur_region)
+                    .expect ("Unable to convert curr_region to usize");
             }
             _ => {}
         }
@@ -269,10 +317,14 @@ impl std::str::FromStr for Request
         {
             index,
             execution_time,
+            desired_completion_time,
+            migratable_up_to,
             required_memory,
             desired_coord,
             threshold,
             should_migrate : false,
+            current_region,
+            arrival_time   : std::time::Instant::now ()
         })
     }
 }
@@ -281,13 +333,16 @@ impl std::fmt::Display for Request
 {
     fn fmt (&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result
     {
-        let str = format! ("[{};{};{};({},{});{}]",
+        let str = format! ("[{};{};{};{};{};({},{});{};{}]",
                           self.index,
                           self.execution_time,
+                          self.desired_completion_time,
+                          self.migratable_up_to,
                           self.required_memory,
                           self.desired_coord.x,
                           self.desired_coord.y,
-                          self.threshold);
+                          self.threshold,
+                          self.current_region);
         write! (f, "{}", str)
     }
 }
@@ -399,6 +454,10 @@ pub struct ApplicationState
     /// Application-related fields.
     pub requests           : Vec<Request>,
     pub number_of_requests : u32,
+
+    /// A vector of request indexes sorted by
+    /// earlier desired completion time.
+    pub requests_by_dct    : Vec<usize>,
 }
 
 impl ApplicationState
@@ -419,6 +478,7 @@ impl ApplicationState
             backlog_sum_of_c   : 0,
             requests           : Vec::with_capacity (5),
             number_of_requests : 0,
+            requests_by_dct    : Vec::with_capacity (5),
         }
     }
 
@@ -433,6 +493,18 @@ impl ApplicationState
         self.node_state.set_coords (coord);
     }
 
+    pub fn get_request (&self, request_index : usize) -> Option<&Request>
+    {
+        for request in &self.requests
+        {
+            if request.index == request_index
+            {
+                return Some (request);
+            }
+        }
+        None
+    }
+
     pub fn add_request (&mut self, request : Request)
     {
         // Enqueue the incoming request.
@@ -444,6 +516,36 @@ impl ApplicationState
 
         // Update the resource consumption variables.
         self.available_memory -= request.required_memory;
+
+        // Insert the request index into requests_by_dct.
+        if self.requests_by_dct.is_empty ()
+        {
+            self.requests_by_dct.push (request.index);
+        }
+        else
+        {
+            // Compute how much ime we have to complete
+            // `request' according to its desired specs.
+            let remaining_time =
+                request.desired_completion_time as i64
+                    - request.arrival_time.elapsed ().as_millis () as i64;
+
+            for i in 0..self.requests_by_dct.len () {
+                let index = self.requests_by_dct[i];
+                let request_i = self.get_request (index)
+                    .expect ("Unable to get request from index");
+
+                // We do the same also for the request with index 'index'.
+                let remaining_time_i =
+                    request_i.desired_completion_time as i64
+                        - request_i.arrival_time.elapsed ().as_millis () as i64;
+                if remaining_time_i > remaining_time
+                {
+                    self.requests_by_dct.insert (i, request.index);
+                    break;
+                }
+            }
+        }
     }
 
     pub fn remove_request (&mut self, request_index : usize)
@@ -464,6 +566,19 @@ impl ApplicationState
         // Update the resource consumption variables.
         self.available_memory += request.required_memory;
 
+        // Remove the request index from requests_by_dct.
+        if !self.requests_by_dct.is_empty ()
+        {
+            for i in 0..self.requests_by_dct.len () {
+                if request.index == self.requests_by_dct[i]
+                {
+                    self.requests_by_dct.remove (i);
+                    break;
+                }
+            }
+        }
+
+        // Then, remove the request.
         self.requests.remove (local_index);
         self.number_of_requests -= 1;
     }
@@ -474,10 +589,69 @@ impl ApplicationState
         self.number_of_requests
     }
 
-    #[allow(dead_code)]
-    pub fn get_requests (&self, index : usize) -> &Request
+    pub fn advance_cur_region_of_request (&mut self, request_index : usize)
     {
-        &self.requests[index]
+        for i in 0..self.requests.len ()
+        {
+            if self.requests[i].index == request_index
+            {
+                self.requests[i].current_region += 1;
+            }
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn get_cur_region_of_request (&mut self, request_index : usize) -> usize
+    {
+        let mut cur_region : usize = 0;
+        for i in 0..self.requests.len ()
+        {
+            if self.requests[i].index == request_index
+            {
+                cur_region = self.requests[i].current_region
+            }
+        }
+        cur_region
+    }
+
+    pub fn is_request_migratable (&self, request_index : usize) -> bool
+    {
+        match self.get_request (request_index)
+        {
+            Some(request) =>
+                {
+                    request.migratable_up_to > request.current_region
+                }
+            None =>
+                {
+                    false
+                }
+        }
+    }
+    pub fn get_should_migrate_of_request (&mut self, request_index : usize) -> bool
+    {
+        let mut should_migrate : bool  = false;
+        for i in 0..self.requests.len ()
+        {
+            if self.requests[i].index == request_index
+            {
+                should_migrate =
+                    self.requests[i].should_migrate &&
+                        (self.requests[i].migratable_up_to > self.requests[i].current_region);
+            }
+        }
+        should_migrate
+    }
+
+    pub fn set_should_migrate_of_request (&mut self, request_index : usize, should_migrate : bool)
+    {
+        for i in 0..self.requests.len ()
+        {
+            if self.requests[i].index == request_index
+            {
+                self.requests[i].should_migrate = should_migrate;
+            }
+        }
     }
 
     pub fn get_expected_completion_time (&self, request_c: u32) -> u32

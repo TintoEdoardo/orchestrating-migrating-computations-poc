@@ -15,6 +15,7 @@ sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating
 sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 3600 experiment_scripts/lp_task_aarch64"; echo ""
 echo "LP TASKS STARTED"
 
+# Experiment 1.
 while read line; do
 
   read state_0 state_1 state_2 request <<< $line

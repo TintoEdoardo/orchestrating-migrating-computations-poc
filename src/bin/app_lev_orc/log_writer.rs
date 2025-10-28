@@ -46,9 +46,33 @@ pub fn save_admm_data (is_centralized    : bool,
 
     // Then add the metrics acquired.
     convergence.write (convergence_micros.to_string ().as_bytes ())
-        .expect("Unable to write in convergence file. ");
-    convergence.write (b"\n").expect ("Filed to add newline. ");
+        .expect("Unable to write to convergence file. ");
+    convergence.write (b"\n").expect ("Failed to add newline. ");
     iterations.write (iterations_num.to_string ().as_bytes ())
-        .expect("Unable to write in iterations file. ");
-    iterations.write (b"\n").expect ("Filed to add newline. ");
+        .expect("Unable to write to iterations file. ");
+    iterations.write (b"\n").expect ("Failed to add newline. ");
+}
+
+pub fn save_send_time (send_micros: u64)
+{
+    let mut send : std::fs::File = std::fs::OpenOptions::new ()
+        .append (true)
+        .create (true)
+        .open ("../experiment_data/send.txt")
+        .expect ("Failed to open ../experiment_data/send.txt");
+
+    send.write (send_micros.to_string ().as_bytes ())
+        .expect ("Failed to write to send.txt");
+}
+
+pub fn save_receive_time (receive_micros: u64)
+{
+    let mut receive : std::fs::File = std::fs::OpenOptions::new ()
+        .append (true)
+        .create (true)
+        .open ("../experiment_data/receive.txt")
+        .expect ("Failed to open ../experiment_data/receive.txt");
+
+    receive.write (receive_micros.to_string ().as_bytes ())
+        .expect ("Failed to write to receive.txt");
 }

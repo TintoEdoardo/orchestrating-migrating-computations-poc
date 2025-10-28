@@ -275,9 +275,12 @@ impl sporadic_server::Workload for WasmWorkload
                 {
                     let mut app_state =
                         caller.data_mut ().application_state.lock ().unwrap ();
-                    let requests = &mut app_state.requests;
 
-                    if requests[request_index].get_should_migrate ()
+                    // Update request.current_region.
+                    app_state.advance_cur_region_of_request (request_index);
+
+                    // Check if a migration is needed. 
+                    if app_state.get_should_migrate_of_request (request_index)
                     {
                         result = 1;
                     }
