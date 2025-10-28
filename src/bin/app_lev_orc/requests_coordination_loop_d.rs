@@ -24,7 +24,7 @@ pub struct ControlSystem
     ip_and_port       : String,
 
     /// MQTT topics this application has to interact with.
-    topics            : [String; 5],
+    topics            : [String; 6],
 
     /// The number of nodes in the federation assigned
     /// to this application.
@@ -109,6 +109,7 @@ impl ControlSystem
                  "federation/local_update".to_string (),
                  format! ("federation/src/{}", node_index).to_string (),
                  format! ("federation/dst/{}", node_index).to_string (),
+                 "federation/node_available".to_string (),
                  "disconnect".to_string ()],
             node_number,
             node_index,
@@ -143,7 +144,7 @@ impl ControlSystem
 
             // Define the set of options for the connection
             let lwt = mqtt::Message::new (
-                self.topics[4].clone (),
+                self.topics[5].clone (),
                 "[LWT] Async subscriber 'requests_coordination_loop' lost connection",
                 mqtt::QOS_1,
             );
