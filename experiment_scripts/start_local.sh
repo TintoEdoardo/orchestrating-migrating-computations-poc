@@ -27,7 +27,7 @@ if [ $2 == "centralized" ]; then
   fi
 
 # Alter the node state.
-sed -i "3s/.*/$4/" experiment_folder/$3
+sed -i "4s/.*/$4/" experiment_folder/$3
 
 # Start the experiment.
 cd experiment_folder/
