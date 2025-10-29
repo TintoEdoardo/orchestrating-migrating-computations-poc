@@ -458,6 +458,9 @@ pub struct ApplicationState
     /// A vector of request indexes sorted by
     /// earlier desired completion time.
     pub requests_by_dct    : Vec<usize>,
+
+    /// Checkpoint ready.
+    pub checkpoint_is_ready: bool,
 }
 
 impl ApplicationState
@@ -479,6 +482,7 @@ impl ApplicationState
             requests           : Vec::with_capacity (5),
             number_of_requests : 0,
             requests_by_dct    : Vec::with_capacity (5),
+            checkpoint_is_ready: false,
         }
     }
 

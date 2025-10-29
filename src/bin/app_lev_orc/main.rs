@@ -95,6 +95,12 @@ fn main ()
         std::sync::Arc::new (
             (std::sync::Mutex::new (number_of_requests as u8), std::sync::Condvar::new ()));
 
+    // Initialize a barrier for completing the checkpoint.
+    let checkpoint_is_ready = application_state.lock ().unwrap ().checkpoint_is_ready;
+    let checkpoint_barrier : std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)> =
+        std::sync::Arc::new (
+            (std::sync::Mutex::new (checkpoint_is_ready), std::sync::Condvar::new ()));
+
     // First activation (10ms in the future).
     let mut first_activation : libc::timespec = unsafe { std::mem::zeroed () };
     unsafe
@@ -175,18 +181,20 @@ fn main ()
 
     let rcl_app_state = std::sync::Arc::clone (&application_state);
     let rcl_barrier = std::sync::Arc::clone (&barrier);
+    let rcl_cp_barrier = std::sync::Arc::clone (&checkpoint_barrier);
     let rcl_handle = std::thread::spawn(move ||
         {
-            requests_coordination_loop.start (rcl_app_state, rcl_barrier);
+            requests_coordination_loop.start (rcl_app_state, rcl_barrier, rcl_cp_barrier);
         }
     );
     handles.push (rcl_handle);
 
     let ss_app_state = std::sync::Arc::clone (&application_state);
     let ss_barrier = std::sync::Arc::clone (&barrier);
+    let ss_cp_barrier = std::sync::Arc::clone (&checkpoint_barrier);
     let ss_handle = std::thread::spawn (move ||
         {
-            sporadic_server.start (ss_app_state, ss_barrier);
+            sporadic_server.start (ss_app_state, ss_barrier, ss_cp_barrier);
         }
     );
     handles.push (ss_handle);

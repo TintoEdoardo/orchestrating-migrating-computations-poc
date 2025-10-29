@@ -52,8 +52,9 @@ impl ControlSystem
     }
 
     pub fn start (&mut self,
-                  application_state: std::sync::Arc<std::sync::Mutex<ApplicationState>>,
-                  barrier          : std::sync::Arc<(std::sync::Mutex<u8>, std::sync::Condvar)>)
+                  application_state : std::sync::Arc<std::sync::Mutex<ApplicationState>>,
+                  barrier           : std::sync::Arc<(std::sync::Mutex<u8>, std::sync::Condvar)>,
+                  checkpoint_barrier: std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)>)
     {
 
         #[cfg(feature = "print_log")]
@@ -100,7 +101,8 @@ impl ControlSystem
         // Server thread.
         let mut workload = WasmWorkload::new (self.application_index,
                                                             self.request_directory.clone (),
-                                                            application_state.clone ());
+                                                            application_state.clone (),
+                                                            checkpoint_barrier.clone ());
         let srv_controller = controller.clone ();
         let server_handle = std::thread::spawn (move ||
             {
@@ -186,21 +188,26 @@ struct WasmWorkload
     /// The state of the application.
     application_state: std::sync::Arc<std::sync::Mutex<ApplicationState>>,
 
+    /// Whether or not a checkpoint is ready.
+    checkpoint_barrier: std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)>,
+
     /// The current request being served.
     current_request   : std::option::Option<Request>
 }
 
 impl WasmWorkload
 {
-    fn new(application_index: usize,
-           request_directory: String,
-           application_state: std::sync::Arc<std::sync::Mutex<ApplicationState>>) -> Self
+    fn new(application_index : usize,
+           request_directory : String,
+           application_state : std::sync::Arc<std::sync::Mutex<ApplicationState>>,
+           checkpoint_barrier: std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)>) -> Self
     {
         Self
         {
             application_index,
             request_directory,
             application_state,
+            checkpoint_barrier,
             current_request: None,
         }
     }
@@ -451,7 +458,10 @@ impl sporadic_server::Workload for WasmWorkload
                         #[cfg(feature = "print_log")]
                         println! ("sporadic_server - CHECKPOINT occurred");
 
-                        // Do nothing and pass to the next request.
+                        // Notify that the computation is ready to migrate.
+                        let (barrier, cvar) = &*self.checkpoint_barrier;
+                        *barrier.lock ().unwrap () = true;
+                        cvar.notify_all ();
                     }
                     else
                     {
