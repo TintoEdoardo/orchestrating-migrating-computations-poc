@@ -230,8 +230,8 @@ impl sporadic_server::Workload for WasmWorkload
                     // out of the pending queue, to avoid this issue.
                     // For now, we can simply terminate the function, and re-run
                     // `wait_for_activation ()'.
-                    #[cfg(feature = "print_log")]
-                    println! ("sporadic_server - requests.is_empty (). ");
+                    // #[cfg(feature = "print_log")]
+                    // println! ("sporadic_server - requests.is_empty (). ");
                     return;
                 }
             Some (&request) =>
@@ -297,7 +297,9 @@ impl sporadic_server::Workload for WasmWorkload
                 }
 
                 #[cfg(feature = "periodic_activation")]
-                println! ("request {} - should_migrate END with {}", request_index, result);
+                println! ("request {} - should_migrate = {}", request_index, result);
+
+                println! ("request {} - should_migrate = {}", request_index, result);
 
                 result
             }
@@ -440,6 +442,9 @@ impl sporadic_server::Workload for WasmWorkload
         {
             Ok (_) =>
                 {
+                    #[cfg(feature = "print_log")]
+                    println! ("sporadic_server - REGULAR END");
+
                     // Remove the directory.
                     std::fs::remove_dir_all (path_to_req_folder).unwrap ();
                     {
@@ -458,6 +463,30 @@ impl sporadic_server::Workload for WasmWorkload
                         #[cfg(feature = "print_log")]
                         println! ("sporadic_server - CHECKPOINT occurred");
 
+                        let main_memory_path =
+                            format! ("{}/{}", path_to_req_folder.to_string (), "main_memory.b");
+                        let checkpoint_memory_path =
+                            format! ("{}/{}", path_to_req_folder.to_string (), "checkpoint_memory.b");
+
+                        let main_memory =
+                            instance.get_memory (&mut store, "memory")
+                                .expect ("Unable to export main memory");
+
+                        let checkpoint_mem =
+                            instance.get_memory (&mut store, "checkpoint_memory")
+                                .expect ("Unable to export checkpoint memory");
+
+                        // Copy the main memory to file.
+                        std::fs::write (main_memory_path, main_memory.data (&store))
+                            .expect("Failed to write main memory to file");
+
+                        // Same for the checkpoint memory containing the stored variables.
+                        std::fs::write (checkpoint_memory_path, checkpoint_mem.data (&store))
+                            .expect("Failed to write main memory to file");
+
+                        #[cfg(feature = "print_log")]
+                        println! ("sporadic_server - memories SAVED");
+
                         // Notify that the computation is ready to migrate.
                         let (barrier, cvar) = &*self.checkpoint_barrier;
                         *barrier.lock ().unwrap () = true;
@@ -465,6 +494,9 @@ impl sporadic_server::Workload for WasmWorkload
                     }
                     else
                     {
+                        #[cfg(feature = "print_log")]
+                        println! ("sporadic_server - ERROR");
+
                         // Remove the directory.
                         std::fs::remove_dir_all (path_to_req_folder).unwrap ();
                         {

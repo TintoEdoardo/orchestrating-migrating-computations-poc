@@ -371,14 +371,15 @@ impl ControlSystem
                                                     {
                                                         state.set_should_migrate_of_request (index_incoming_request, true);
                                                     }
+                                                    drop(state);
 
                                                     // Wait for the checkpoint to complete.
                                                     let (barrier, cvar) = &*checkpoint_barrier;
                                                     let _r = cvar.wait_while (barrier.lock ().unwrap (),
-                                                                              |&mut is_ready| { is_ready }).unwrap ();
+                                                                              |&mut is_ready| { !is_ready }).unwrap ();
 
                                                     // Then start the transfer machinery with a
-                                                    // signal message to the receiver. 
+                                                    // signal message to the receiver.
                                                     let dest_topic = format! ("{}/{}",
                                                                               "federation/dst",
                                                                               dest_node.expect ("Missing dst node. "));
