@@ -8,6 +8,7 @@ use std::io::{Read, Write};
 use crate::{admm_solver::{GlobalSolver, LocalSolver}, log_writer, state::{ApplicationState, Coord, NodeState, Request}};
 use crate::mqtt_utils::{MessageLocal, BROKER_TOPICS, REGULAR_TOPICS};
 use crate::linux_utils;
+use crate::state::MessageRequest;
 
 /// Data and functions associated with the
 /// requests_coordination_loop.
@@ -23,7 +24,7 @@ pub struct ControlSystem
     ip_and_port       : String,
 
     /// MQTT topics this application has to interact with.
-    topics            : [String; 6],
+    topics            : [String; 7],
 
     /// The number of nodes in the federation assigned
     /// to this application.
@@ -98,7 +99,7 @@ impl ControlSystem
 
         // Now depending on whether the current node is the broker
         // or not, configure the topics accordingly.
-        let topics : [String; 6];
+        let topics : [String; 7];
         if is_controller
         {
 
@@ -112,6 +113,7 @@ impl ControlSystem
                 format! ("{}{}", BROKER_TOPICS[3], node_index).to_string (),
                 format! ("{}{}", BROKER_TOPICS[4], node_index).to_string (),
                 BROKER_TOPICS[5].to_string (),
+                "federation/node_available".to_string ()
             ]
         }
         else
@@ -127,6 +129,7 @@ impl ControlSystem
                 format! ("{}{}", REGULAR_TOPICS[3], node_index).to_string (),
                 REGULAR_TOPICS[4].to_string (),
                 "unused".to_string (),
+                "federation/node_available".to_string ()
             ]
         }
 
@@ -154,7 +157,8 @@ impl ControlSystem
     /// ADMM consensus algorithm. 
     pub fn start (&mut self,
                   application_state : std::sync::Arc<std::sync::Mutex<ApplicationState>>,
-                  barrier           : std::sync::Arc<(std::sync::Mutex<u8>, std::sync::Condvar)>)
+                  barrier           : std::sync::Arc<(std::sync::Mutex<u8>, std::sync::Condvar)>,
+                  checkpoint_barrier: std::sync::Arc<(std::sync::Mutex<bool>, std::sync::Condvar)>)
     {
 
         #[cfg(feature = "print_log")]
@@ -476,11 +480,30 @@ impl ControlSystem
                                                 println! ("requests_coordination_loop - src == dest");
 
                                                 // The migration is not convenient after all.
-                                                // TODO: what to do here?
+                                                // Continue as usual.
 
                                             }
                                             else
                                             {
+                                                // The migration is convenient.
+                                                // First, prepare for the checkpoint.
+                                                let mut state =
+                                                    application_state.lock ().unwrap ();
+                                                let index_incoming_request =
+                                                    incoming_request.unwrap ().get_index ();
+                                                if index_incoming_request ==
+                                                    state.requests.first().unwrap ().get_index ()
+                                                {
+                                                    state.set_should_migrate_of_request (index_incoming_request, true);
+                                                }
+                                                drop(state);
+
+                                                // Wait for the checkpoint to complete.
+                                                let (barrier, cvar) = &*checkpoint_barrier;
+                                                let _r = cvar.wait_while (barrier.lock ().unwrap (),
+                                                                          |&mut is_ready| { !is_ready }).unwrap ();
+
+
                                                 let dest_topic = format! ("{}/{}",
                                                                           "federation/dst",
                                                                           dest_node);
@@ -830,6 +853,46 @@ impl ControlSystem
                         {
                             let receive_time = linux_utils::get_completion_time (start_receive);
                             log_writer::save_receive_time (receive_time);
+                        }
+                    }
+                    // federation/node_available -> node_index
+                    else if msg.topic () == "federation/node_available"
+                    {
+                        #[cfg(feature = "print_log")]
+                        println! ("requests_coordination_loop - federation/node_available");
+
+                        // Pick the request that would benefit the most from
+                        // a migration.
+                        let state =
+                            application_state.lock ().unwrap ();
+
+                        #[cfg(feature = "print_log")]
+                        println! ("requests_coordination_loop - state.requests_by_dct.len () = {}", state.requests_by_dct.len ());
+
+                        match state.requests_by_dct.first ()
+                        {
+                            Some (&request_index) =>
+                                {
+                                    // Check if the computation has enough remaining computation
+                                    // to benefit from a migration.
+                                    if state.is_request_migratable (request_index)
+                                    {
+                                        // Start a migration.
+                                        let request = *state.get_request (request_index)
+                                            .expect ("Unable to find request from request_index");
+                                        let message_request =
+                                            MessageRequest::new (self.node_index, request);
+                                        let msg = mqtt::Message::new (
+                                            "federation/migration".to_string (),
+                                            message_request.to_string (),
+                                            paho_mqtt::QOS_1);
+                                        self.client.publish (msg);
+                                    }
+                                }
+                            None =>
+                                {
+                                    // Do nothing.
+                                }
                         }
                     }
                 }
