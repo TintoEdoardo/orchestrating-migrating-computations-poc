@@ -9,11 +9,11 @@ node_2="192.168.1.113"
 node_3="192.168.1.126"
 
 # Start the low priority task in each node.
-# echo "START LP TASKS"
-# sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 3600 experiment_scripts/lp_task_aarch64"; echo ""
-# sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 3600 experiment_scripts/lp_task_aarch64"; echo ""
-# sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 3600 experiment_scripts/lp_task_aarch64"; echo ""
-# echo "LP TASKS STARTED"
+echo "START LP TASKS"
+sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 28800 experiment_scripts/lp_task_aarch64"; echo ""
+sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 28800 experiment_scripts/lp_task_aarch64"; echo ""
+sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 28800 experiment_scripts/lp_task_aarch64"; echo ""
+echo "LP TASKS STARTED"
 
 # Clear logs.
 echo "CLEAR THE LOG FILES"
@@ -22,7 +22,6 @@ sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating
 sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; cd experiment_scripts; chmod u+x clear_log.sh; ./clear_log.sh"; echo ""
 echo "LOG FILES CLEARED"
 
-: <<'COMMENT'
 # Experiment 1.
 while read -u 9 line; do
 
@@ -53,8 +52,9 @@ while read -u 9 line; do
   sleep 35s
 
 done 9< experiment_data/distances.txt
-COMMENT
 
+
+: <<'COMMENT'
 # Experiment 2.
 for (( i=1; i<=200; i++))
 do
@@ -75,3 +75,4 @@ do
 
   sleep 30s
 done
+COMMENT
