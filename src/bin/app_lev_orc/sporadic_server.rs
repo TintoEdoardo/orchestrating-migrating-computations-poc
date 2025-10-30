@@ -2,7 +2,7 @@
 /*    S P O R A D I C   S E R V E R    */
 /*         ( I N S T A N C E )         */
 /***************************************/
-
+use wasmtime_wasi::{DirPerms, FilePerms};
 use crate::state::{ApplicationState, Request};
 use sporadic_server;
 use sporadic_server::{SporadicServer, SporadicServerController};
@@ -408,9 +408,12 @@ impl sporadic_server::Workload for WasmWorkload
             .expect ("Instantiate failed. ");
 
         // Create the Store.
+        let host_path = format! ("./{}", path_to_req_folder);
         let wasi_ctx = wasmtime_wasi::WasiCtxBuilder::new ()
             .inherit_stdio ()
             .inherit_env ()
+            .preopened_dir(host_path, ".", DirPerms::all(), FilePerms::all())
+            .expect("Unable to config directory. ")
             .build_p1 ();
 
         let state = MyState
