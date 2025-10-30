@@ -61,9 +61,9 @@ do
 
   echo "RUN $i"
 
-  state_0 = "[(21,46);1]"
-  state_1 = "[(91,87.4);0.4]"
-  state_2 = "[(1,2.2);0.6]"
+  state_0="[(21,46);1]"
+  state_1="[(91,87.4);0.4]"
+  state_2="[(1,2.2);0.6]"
 
   sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 30 sudo ./experiment_scripts/start_local.sh 0 centralized node_0 \"$state_0\""; echo ""
   sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 30 sudo ./experiment_scripts/start_local.sh 1 centralized node_1 \"$state_1\""; echo ""
