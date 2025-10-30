@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cd ../experiment_data
-"" > convergence_c.txt
-"" > convergence_d.txt
-"" > iterations_c.txt
-"" > iterations_d.txt
+echo "" > convergence_c.txt
+echo "" > convergence_d.txt
+echo "" > iterations_c.txt
+echo "" > iterations_d.txt
