@@ -60,6 +60,7 @@ pub fn save_send_time (send_micros: u64)
 
     send.write (send_micros.to_string ().as_bytes ())
         .expect ("Failed to write to send.txt");
+    send.write (b"\n").expect ("Failed to add newline. ");
 }
 
 pub fn save_receive_time (receive_micros: u64)
@@ -72,4 +73,5 @@ pub fn save_receive_time (receive_micros: u64)
 
     receive.write (receive_micros.to_string ().as_bytes ())
         .expect ("Failed to write to receive.txt");
+    receive.write (b"\n").expect ("Failed to add newline. ");
 }
