@@ -23,7 +23,7 @@ sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating
 echo "LOG FILES CLEARED"
 
 # Experiment 1.
-for line in $(cat experiment_data/distances.txt); do
+while read line; do
 
   read state_0 state_1 state_2 request <<< $line
 
@@ -51,4 +51,4 @@ for line in $(cat experiment_data/distances.txt); do
 
   sleep 20s
 
-done
+done < experiment_data/distances.txt
