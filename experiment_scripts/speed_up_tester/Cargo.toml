@@ -1,0 +1,10 @@
+[package]
+name = "speed_up_tester"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+futures = "0.3.31"
+libc = "0.2.174"
+wasmtime = "31.0.0"
+wasmtime-wasi = "31.0.0"
