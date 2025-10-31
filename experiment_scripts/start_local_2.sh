@@ -22,15 +22,9 @@ pwd_ns=$(cat node_user_password.txt)
 ./experiment_scripts/configure_folder.sh $1
 
 if [ $2 == "centralized" ]; then
-  # Prepare the log file.
-  echo -n "$5 " >> experiment_data/convergence_c.txt
-  echo -n "$5 " >> experiment_data/iterations_c.txt
   # Configure the experiment folder.
   echo $(cat node_user_password.txt) | sudo -S ./experiment_scripts/enable_centralized.sh
   else
-    # Prepare the log file.
-    echo -n "$5 " >> experiment_data/convergence_d.txt
-    echo -n "$5 " >> experiment_data/iterations_d.txt
     # Configure the experiment folder.
     echo $(cat node_user_password.txt) | sudo -S ./experiment_scripts/enable_distributed.sh
   fi
@@ -39,8 +33,9 @@ if [ $2 == "centralized" ]; then
 sed -i "4s/.*/$4/" experiment_folder/$3
 
 # Prepare the log file.
-# echo -n "$5 " >> experiment_data/send.txt
-# echo -n "$5 " >> experiment_data/receive.txt
+echo -n "$5 " >> experiment_data/send.txt
+echo -n "$5 " >> experiment_data/receive.txt
+echo -n "$5 " >> experiment_data/migration.txt
 
 # Start the lp_task.
 # sudo timeout $experiment_time ./experiment_scripts/lp_task_aarch64
