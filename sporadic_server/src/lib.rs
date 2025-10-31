@@ -5,7 +5,7 @@
 use std::ops::Add;
 pub use crate::workload::Workload;
 
-#[cfg(feature = "timing_log")]
+#[cfg(feature = "ss_timing_log")]
 use crate::log_events::EventLogger;
 
 mod utilities;
@@ -148,7 +148,7 @@ pub struct SporadicServerController
     has_expired     : bool,
 
     /// Logger for time events.
-    #[cfg(feature = "timing_log")]
+    #[cfg(feature = "ss_timing_log")]
     event_logger    : EventLogger,
 }
 
@@ -169,7 +169,7 @@ impl SporadicServerController
             is_server_running        : is_ser_running,
             is_executing             : false,
             has_expired              : false,
-            #[cfg(feature = "timing_log")]
+            #[cfg(feature = "ss_timing_log")]
             event_logger             : EventLogger::new (),
         }
     }
@@ -381,7 +381,7 @@ impl SporadicServerController
 
     fn signal_request_completion (&mut self)
     {
-        #[cfg(feature = "timing_log")]
+        #[cfg(feature = "ss_timing_log")]
         {
             self.event_logger.print_event (
                 log_events::EventType::RequestCompleted,
@@ -423,7 +423,7 @@ impl SporadicServerController
                 // Then process it.
                 if event.event_type == EventType::ReleaseEvent
                 {
-                    #[cfg(feature = "timing_log")]
+                    #[cfg(feature = "ss_timing_log")]
                     {
                         controller.event_logger.print_event (
                             log_events::EventType::ReleaseEvent,
@@ -433,7 +433,7 @@ impl SporadicServerController
                 }
                 else if event.event_type == EventType::BudgetExhausted
                 {
-                    #[cfg(feature = "timing_log")]
+                    #[cfg(feature = "ss_timing_log")]
                     {
                         controller.event_logger.print_event (
                             log_events::EventType::BudgetExhausted,

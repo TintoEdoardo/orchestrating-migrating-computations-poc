@@ -222,6 +222,11 @@ impl Request
         self.should_migrate = migrate;
     }
 
+    pub fn set_region (&mut self, region : usize)
+    {
+        self.current_region = region;
+    }
+    
     pub fn get_should_migrate (&self) -> bool
     {
         self.should_migrate

@@ -378,6 +378,12 @@ impl ControlSystem
                                                     let _r = cvar.wait_while (barrier.lock ().unwrap (),
                                                                               |&mut is_ready| { !is_ready }).unwrap ();
 
+                                                    // Get the index of the next region
+                                                    // of the request.
+                                                    let request_index = incoming_request.unwrap ().get_index ();
+                                                    let next_region = application_state.lock ().unwrap ()
+                                                        .get_cur_region_of_request (request_index);
+
                                                     // Then start the transfer machinery with a
                                                     // signal message to the receiver.
                                                     let dest_topic = format! ("{}/{}",
@@ -390,7 +396,7 @@ impl ControlSystem
                                                     // Send your address to the destination node.
                                                     let msg = mqtt::Message::new (
                                                         dest_topic,
-                                                        self.ip_and_port.to_string (),
+                                                        next_region.to_string (),
                                                         paho_mqtt::QOS_1);
                                                     self.client.publish (msg).await?;
                                                 }
@@ -577,13 +583,13 @@ impl ControlSystem
                                 }
                         }
 
-                        #[cfg(feature = "timing_log")]
+                        #[cfg(feature = "migration_log")]
                         {
                             let send_time = linux_utils::get_completion_time (start_send);
                             log_writer::save_send_time (send_time);
                         }
                     }
-                    // federation/dst/i -> ip:port.
+                    // federation/dst/i -> region_index.
                     else if msg.topic () == self.topics[3]
                     {
 
@@ -596,6 +602,8 @@ impl ControlSystem
                                 libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut start_receive);
                             }
 
+                        let region_index : usize = msg.payload_str ().parse().unwrap ();
+
                         match incoming_request
                         {
                             Some (request) =>
@@ -606,6 +614,8 @@ impl ControlSystem
                                     // application.
                                     // To do so, we need to modify the application state.
                                     {
+                                        let mut request = request;
+                                        request.set_region (region_index);
                                         let mut state =
                                             application_state.lock ().unwrap ();
                                         state.add_request (request);
@@ -759,7 +769,7 @@ impl ControlSystem
                         }
 
 
-                        #[cfg(feature = "timing_log")]
+                        #[cfg(feature = "migration_log")]
                         {
                             let receive_time = linux_utils::get_completion_time (start_receive);
                             log_writer::save_receive_time (receive_time);

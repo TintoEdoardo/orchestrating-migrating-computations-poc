@@ -6,7 +6,7 @@ use wasmtime_wasi::{DirPerms, FilePerms};
 use crate::state::{ApplicationState, Request};
 use sporadic_server;
 use sporadic_server::{SporadicServer, SporadicServerController};
-use crate::main;
+use crate::{linux_utils, log_writer, main};
 
 /// Once a node accepts a request, the request
 /// is executed by a thread.
@@ -217,6 +217,9 @@ impl sporadic_server::Workload for WasmWorkload
 {
     fn exec_workload(&mut self) {
 
+        #[cfg(feature = "migration_log")]
+        let mut start_request    = libc::timespec { tv_sec: 0, tv_nsec: 0 };
+
         match self.application_state.lock ().unwrap ().requests.first ()
         {
             None =>
@@ -239,6 +242,12 @@ impl sporadic_server::Workload for WasmWorkload
                     self.current_request = Some(request);
                 }
         }
+
+        #[cfg(feature = "migration_log")]
+        unsafe
+            {
+                libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut start_request);
+            }
 
         let &current_request = self.current_request.as_ref ().unwrap ();
 
@@ -412,7 +421,7 @@ impl sporadic_server::Workload for WasmWorkload
         let wasi_ctx = wasmtime_wasi::WasiCtxBuilder::new ()
             .inherit_stdio ()
             .inherit_env ()
-            .preopened_dir(host_path, ".", DirPerms::all(), FilePerms::all())
+            .preopened_dir (host_path, ".", DirPerms::all (), FilePerms::all ())
             .expect("Unable to config directory. ")
             .build_p1 ();
 
@@ -512,6 +521,13 @@ impl sporadic_server::Workload for WasmWorkload
                     }
                 }
         }
+
+        #[cfg(feature = "migration_log")]
+        {
+            let request_time = linux_utils::get_completion_time (start_request);
+            log_writer::save_ss_time (request_time);
+        }
+
     }
 }
 

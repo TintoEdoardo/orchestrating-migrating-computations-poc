@@ -11,6 +11,6 @@ name = "sporadic_server"
 path = "src/main.rs"
 
 [features]
-default = ["timing_log"]
+default = []
 print_log = []
-timing_log = []
+ss_timing_log = []

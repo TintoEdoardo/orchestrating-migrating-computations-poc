@@ -75,3 +75,16 @@ pub fn save_receive_time (receive_micros: u64)
         .expect ("Failed to write to receive.txt");
     receive.write (b"\n").expect ("Failed to add newline. ");
 }
+
+pub fn save_ss_time (receive_micros: u64)
+{
+    let mut server : std::fs::File = std::fs::OpenOptions::new ()
+        .append (true)
+        .create (true)
+        .open ("../experiment_data/migration.txt")
+        .expect ("Failed to open ../experiment_data/migration.txt");
+
+    server.write (receive_micros.to_string ().as_bytes ())
+        .expect ("Failed to write to receive.txt");
+    server.write (b"\n").expect ("Failed to add newline. ");
+}
