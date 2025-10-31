@@ -157,7 +157,7 @@ fn main ()
         sporadic_server::ControlSystem::new (application_index,
                                              20,
                                              100,
-                                             20,
+                                             30,
                                              affinity,
                                              "requests".to_string ());
 
