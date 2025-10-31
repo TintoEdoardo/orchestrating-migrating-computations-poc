@@ -15,6 +15,7 @@ node_3="192.168.1.126"
 # sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 28800 experiment_scripts/lp_task_aarch64"; echo ""
 # echo "LP TASKS STARTED"
 
+: <<'COMMENT'
 # Save and clear logs.
 echo "SAVE AND CLEAR THE LOG FILES"
 sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; cd experiment_scripts; chmod u+x clear_log.sh; ./clear_log.sh"; echo ""
@@ -54,27 +55,25 @@ while read -u 9 line; do
 
   ((iteration++))
 done 9< experiment_data/distances.txt
+COMMENT
 
-
-: <<'COMMENT'
 # Experiment 2.
 for (( i=1; i<=200; i++))
 do
 
   echo "RUN $i"
 
-  state_0="[(21,46);1]"
-  state_1="[(91,87.4);0.4]"
-  state_2="[(1,2.2);0.6]"
+  state_0="[(4,2.2);1]"
+  state_1="[(91,87.4);0.2]"
+  state_2="[(21,46);0.1]"
 
-  sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 30 sudo ./experiment_scripts/start_local.sh 0 centralized node_0 \"$state_0\""; echo ""
-  sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 30 sudo ./experiment_scripts/start_local.sh 1 centralized node_1 \"$state_1\""; echo ""
-  sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m timeout 30 sudo ./experiment_scripts/start_local.sh 0 centralized node_2 \"$state_2\""; echo ""
+  sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m ./experiment_scripts/start_local_2.sh 0 centralized node_0 \"$state_0\" $i"; echo ""
+  sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m ./experiment_scripts/start_local_2.sh 1 centralized node_1 \"$state_1\" $i"; echo ""
+  sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m ./experiment_scripts/start_local_2.sh 0 centralized node_2 \"$state_2\" $i"; echo ""
 
-  sleep 5s
+  sleep 45s
 
   mosquitto_pub -h 192.168.1.210 -t "federation/node_available" -m "node_available"
 
-  sleep 30s
+  sleep 120s
 done
-COMMENT
