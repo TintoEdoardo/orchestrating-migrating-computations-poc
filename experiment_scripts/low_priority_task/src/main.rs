@@ -3,7 +3,7 @@ fn main ()
     // Fix the affinity of this task.
     let pid : libc::pid_t = unsafe { libc::getpid () };
     let mut cpu_set : libc::cpu_set_t = unsafe { core::mem::zeroed () };
-    unsafe { libc::CPU_SET(2, &mut cpu_set); }
+    unsafe { libc::CPU_SET(3, &mut cpu_set); }
     unsafe { libc::sched_setaffinity(pid, core::mem::size_of::<libc::cpu_set_t> (),&mut cpu_set); }
 
     // Fix the priority.
