@@ -35,22 +35,22 @@ while read -u 9 line; do
   sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m ./experiment_scripts/start_local.sh 1 distributed node_1 \"$state_1\" $iteration"; echo ""
   sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m ./experiment_scripts/start_local.sh 0 distributed node_0 \"$state_0\" $iteration"; echo ""
 
-  sleep 7s
+  sleep 10s
 
   mosquitto_pub -h 192.168.1.210 -t federation/migration -m "$request"
 
-  sleep 35s
+  sleep 60s
 
   echo "  centralized"
   sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m ./experiment_scripts/start_local.sh 0 centralized node_2 \"$state_2\" $iteration"; echo ""
   sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m ./experiment_scripts/start_local.sh 1 centralized node_1 \"$state_1\" $iteration"; echo ""
   sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m ./experiment_scripts/start_local.sh 0 centralized node_0 \"$state_0\" $iteration"; echo ""
 
-  sleep 7s
+  sleep 10s
 
   mosquitto_pub -h 192.168.1.210 -t federation/migration -m "$request"
 
-  sleep 35s
+  sleep 60s
 
   ((iteration++))
 done 9< experiment_data/distances.txt
