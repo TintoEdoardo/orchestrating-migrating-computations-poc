@@ -16,11 +16,11 @@ node_3="192.168.1.126"
 # echo "LP TASKS STARTED"
 
 # Save and clear logs.
-echo "CLEAR THE LOG FILES"
+echo "SAVE AND CLEAR THE LOG FILES"
 sshpass -f node_user_password.txt ssh ubuntu@$node_1 "cd orchestrating-migrating-computations-poc; cd experiment_scripts; chmod u+x clear_log.sh; ./clear_log.sh"; echo ""
 sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; cd experiment_scripts; chmod u+x clear_log.sh; ./clear_log.sh"; echo ""
 sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; cd experiment_scripts; chmod u+x clear_log.sh; ./clear_log.sh"; echo ""
-echo "LOG FILES CLEARED"
+echo "LOG FILES SAVED AND CLEARED"
 
 # Experiment 1.
 iteration=0
