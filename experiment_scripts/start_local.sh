@@ -43,7 +43,7 @@ sed -i "4s/.*/$4/" experiment_folder/$3
 # echo -n "$5 " >> experiment_data/receive.txt
 
 # Start the lp_task.
-sudo timeout $experiment_time ./experiment_scripts/lp_task_aarch64
+# sudo timeout $experiment_time ./experiment_scripts/lp_task_aarch64
 
 # Start the experiment.
 cd experiment_folder/
