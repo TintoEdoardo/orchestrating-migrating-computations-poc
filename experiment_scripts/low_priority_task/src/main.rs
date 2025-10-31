@@ -15,7 +15,7 @@ fn main ()
     unsafe
         {
             libc::sched_setscheduler(pid, libc::SCHED_OTHER, &sched_param);
-            libc::nice (-10 as libc::c_int);
+            libc::nice (10 as libc::c_int);
         }
 
     /* let sched_param = libc::sched_param
