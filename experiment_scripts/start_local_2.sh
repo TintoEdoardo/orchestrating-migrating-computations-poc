@@ -13,7 +13,7 @@ node_3="192.168.1.126"
 su_factor_2="0.5"
 su_factor_3="0.5"
 
-experiment_time="120"
+experiment_time="180"
 
 # Get the pwd for the nodes.
 pwd_ns=$(cat node_user_password.txt)
