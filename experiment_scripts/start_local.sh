@@ -4,6 +4,7 @@
 # $2 : centralized/distributed
 # $3 : node_0/node_1/node_2
 # $4 : node state
+# $5 : number of iteration
 
 node_1="192.168.1.210"
 node_2="192.168.1.113"
@@ -30,6 +31,14 @@ if [ $2 == "centralized" ]; then
 
 # Alter the node state.
 sed -i "4s/.*/$4/" experiment_folder/$3
+
+# Prepare the log file.
+echo -n "$5 " >> experiment_data/convergence_c.txt
+echo -n "$5 " >> experiment_data/convergence_d.txt
+echo -n "$5 " >> experiment_data/iterations_c.txt
+echo -n "$5 " >> experiment_data/iterations_d.txt
+echo -n "$5 " >> experiment_data/send.txt
+echo -n "$5 " >> experiment_data/receive.txt
 
 # Start the lp_task.
 sudo timeout $experiment_time ./experiment_scripts/lp_task_aarch64
