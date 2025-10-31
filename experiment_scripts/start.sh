@@ -52,6 +52,7 @@ while read -u 9 line; do
 
   sleep 35s
 
+  ((iteration++))
 done 9< experiment_data/distances.txt
 
 
