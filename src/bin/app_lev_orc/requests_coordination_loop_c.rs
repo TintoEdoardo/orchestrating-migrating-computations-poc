@@ -378,7 +378,7 @@ impl ControlSystem
                                         format! ("federation/global_update/{}", index);
                                     let msg = mqtt::Message::new (
                                         topic.as_str (),
-                                        format! ("dest-{}", dest_node).to_string (),
+                                        format! ("dest={}", dest_node).to_string (),
                                         paho_mqtt::QOS_1);
                                     self.client.publish (msg).await?;
                                 }
@@ -397,18 +397,19 @@ impl ControlSystem
                                         format! ("federation/global_update/{}", index);
                                     let msg = mqtt::Message::new (
                                         topic.as_str (),
-                                        format! ("update-{}", new_global_for_index).to_string (),
+                                        format! ("update={}", new_global_for_index).to_string (),
                                         paho_mqtt::QOS_1);
                                     self.client.publish (msg).await?;
                                 }
                             }
                         }
                     }
-                    // federation/global_update/i -> update-f32 or dest-usize
+                    // federation/global_update/i -> update=f32 or dest=usize
                     else if msg.topic () == federation_global_upd
                     {
+                        println!("msg_payload = {}", msg.payload_str ());
                         let msg_payload = msg.payload_str ().to_string ();
-                        let msg_info = msg_payload.split ("-").collect::<Vec<&str>> ();
+                        let msg_info = msg_payload.split ("=").collect::<Vec<&str>> ();
                         if msg_info[0] == "update"
                         {
                             let new_global = (*msg_info[1]).parse::<f32> ().unwrap ();
@@ -503,6 +504,12 @@ impl ControlSystem
                                                 let _r = cvar.wait_while (barrier.lock ().unwrap (),
                                                                           |&mut is_ready| { !is_ready }).unwrap ();
 
+                                                // Get the index of the next region
+                                                // of the request.
+                                                let request_index = incoming_request.unwrap ().get_index ();
+                                                let next_region = application_state.lock ().unwrap ()
+                                                    .get_cur_region_of_request (request_index);
+
 
                                                 let dest_topic = format! ("{}/{}",
                                                                           "federation/dst",
@@ -514,7 +521,7 @@ impl ControlSystem
                                                 // Send your address to the destination node.
                                                 let msg = mqtt::Message::new (
                                                     dest_topic,
-                                                    self.ip_and_port.to_string (),
+                                                    next_region.to_string (),
                                                     paho_mqtt::QOS_1);
                                                 self.client.publish (msg).await?;
                                             }
@@ -541,8 +548,7 @@ impl ControlSystem
                         {
                             Some (request) =>
                                 {
-
-                                    // First, we need to remove the request from the
+                                    // We need to remove the request from the
                                     // pool of requests served in this node for this
                                     // application.
                                     {
@@ -582,10 +588,12 @@ impl ControlSystem
                                     let module_path = format! ("{}/module.wasm", path_to_req_dir);
                                     let main_mem_path = format! ("{}/main_memory.b", path_to_req_dir);
                                     let checkpoint_mem_path = format! ("{}/checkpoint_memory.b", path_to_req_dir);
+                                    let input_img_path = format! ("{}/input_small.pgm", path_to_req_dir);
                                     let files_to_compress: Vec<std::path::PathBuf> = vec![
                                         std::path::PathBuf::from (module_path),
                                         std::path::PathBuf::from (main_mem_path),
-                                        std::path::PathBuf::from (checkpoint_mem_path)
+                                        std::path::PathBuf::from (checkpoint_mem_path),
+                                        std::path::PathBuf::from (input_img_path),
                                     ];
 
                                     let options: zip::write::FileOptions<()> = zip::write::FileOptions::default ()
@@ -671,13 +679,13 @@ impl ControlSystem
                                 }
                         }
 
-                        #[cfg(feature = "timing_log")]
+                        #[cfg(feature = "migration_log")]
                         {
                             let send_time = linux_utils::get_completion_time (start_send);
                             log_writer::save_send_time (send_time);
                         }
                     }
-                    // federation/dst/i -> ip:port.
+                    // federation/dst/i -> region_index.
                     else if msg.topic () == federation_dst
                     {
 
@@ -690,6 +698,8 @@ impl ControlSystem
                                 libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut start_receive);
                             }
 
+                        let region_index : usize = msg.payload_str ().parse().unwrap ();
+
                         match incoming_request
                         {
                             Some (request) =>
@@ -700,6 +710,8 @@ impl ControlSystem
                                     // application.
                                     // To do so, we need to modify the application state.
                                     {
+                                        let mut request = request;
+                                        request.set_region (region_index);
                                         let mut state =
                                             application_state.lock ().unwrap ();
                                         state.add_request (request);
@@ -849,7 +861,7 @@ impl ControlSystem
                                 }
                         }
 
-                        #[cfg(feature = "timing_log")]
+                        #[cfg(feature = "migration_log")]
                         {
                             let receive_time = linux_utils::get_completion_time (start_receive);
                             log_writer::save_receive_time (receive_time);
