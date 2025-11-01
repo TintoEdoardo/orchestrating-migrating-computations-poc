@@ -58,7 +58,7 @@ done 9< experiment_data/distances.txt
 COMMENT
 
 # Experiment 2.
-for (( i=1; i<=200; i++))
+for (( i=1; i<=50; i++))
 do
 
   echo "RUN $i"

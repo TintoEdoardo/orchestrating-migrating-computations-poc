@@ -32,7 +32,7 @@ if [ $2 == "centralized" ]; then
 # Select the new bin.
 cd experiment_folder
 rm app_lev_orc &> /dev/null
-cp ../out/app_lev_orc_aarch64_c_2 app_lev_orc
+cp ../out/app_lev_orc_aarch64_c_2_nlm app_lev_orc
 cd ..
 
 # Alter the node state.
