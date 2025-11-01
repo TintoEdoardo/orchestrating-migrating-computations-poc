@@ -498,7 +498,7 @@ impl ControlSystem
                                                 let _r = cvar.wait_while (barrier.lock ().unwrap (),
                                                                           |&mut is_ready| { !is_ready }).unwrap ();
 
-                                                #[cfg(feature = "timing_log")]
+                                                #[cfg(feature = "migration_log")]
                                                 unsafe
                                                     {
                                                         libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut start_send);

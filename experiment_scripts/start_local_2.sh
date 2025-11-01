@@ -29,6 +29,12 @@ if [ $2 == "centralized" ]; then
     echo $(cat node_user_password.txt) | sudo -S ./experiment_scripts/enable_distributed.sh
   fi
 
+# Select the new bin.
+cd experiment_folder
+rm app_lev_orc &> /dev/null
+cp ../out/app_lev_orc_aarch64_c_2 app_lev_orc
+cd ..
+
 # Alter the node state.
 sed -i "4s/.*/$4/" experiment_folder/$3
 
