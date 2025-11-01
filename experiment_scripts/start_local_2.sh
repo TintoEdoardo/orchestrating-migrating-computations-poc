@@ -13,7 +13,7 @@ node_3="192.168.1.126"
 su_factor_2="0.5"
 su_factor_3="0.5"
 
-experiment_time="300"
+experiment_time="420"
 
 # Get the pwd for the nodes.
 pwd_ns=$(cat node_user_password.txt)
@@ -42,5 +42,4 @@ echo -n "$5 " >> experiment_data/migration.txt
 
 # Start the experiment.
 cd experiment_folder/
-# sudo timeout $experiment_time ./app_lev_orc $3
-sudo ./app_lev_orc $3
+sudo timeout $experiment_time ./app_lev_orc $3
