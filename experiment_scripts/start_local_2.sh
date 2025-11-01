@@ -43,11 +43,6 @@ echo -n "$5 " >> experiment_data/send.txt
 echo -n "$5 " >> experiment_data/receive.txt
 echo -n "$5 " >> experiment_data/migration.txt
 
-# Start the lp_task.
-if [ $3 == "node_0" ]; then
-  sudo timeout $experiment_time ./experiment_scripts/lp_task_aarch64
-fi
-
 # Start the experiment.
 cd experiment_folder/
 sudo timeout $experiment_time ./app_lev_orc $3
