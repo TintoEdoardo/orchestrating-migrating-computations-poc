@@ -462,12 +462,6 @@ impl ControlSystem
                                         if src == self.node_index
                                         {
 
-                                            #[cfg(feature = "timing_log")]
-                                            unsafe
-                                                {
-                                                    libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut start_send);
-                                                }
-
                                             #[cfg(feature = "print_log")]
                                             println! ("requests_coordination_loop - src == self.node_index");
 
@@ -503,6 +497,12 @@ impl ControlSystem
                                                 let (barrier, cvar) = &*checkpoint_barrier;
                                                 let _r = cvar.wait_while (barrier.lock ().unwrap (),
                                                                           |&mut is_ready| { !is_ready }).unwrap ();
+
+                                                #[cfg(feature = "timing_log")]
+                                                unsafe
+                                                    {
+                                                        libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut start_send);
+                                                    }
 
                                                 // Get the index of the next region
                                                 // of the request.
