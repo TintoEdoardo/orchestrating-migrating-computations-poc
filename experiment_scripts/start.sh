@@ -23,6 +23,8 @@ sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating
 echo "LOG FILES SAVED AND CLEARED"
 
 : <<'COMMENT'
+COMMENT
+
 # Experiment 1.
 iteration=0
 while read -u 9 line; do
@@ -55,7 +57,6 @@ while read -u 9 line; do
 
   ((iteration++))
 done 9< experiment_data/distances.txt
-COMMENT
 
 # Experiment 2.
 for (( i=1; i<=50; i++))
