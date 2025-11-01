@@ -12,4 +12,3 @@ cp target/release/speed_up_tester out/tester_x86
 
 # Copy a request.
 cp ../../requests/0_0_req/module.wasm out/module.wasm
-cp ../../requests/0_0_req/input_small.pgm out/input_small.pgm

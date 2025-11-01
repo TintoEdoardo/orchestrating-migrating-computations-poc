@@ -48,7 +48,7 @@ fn main()
         // Create the Store.
         let host_path = format! ("./{}", ".");
         let wasi_ctx = wasmtime_wasi::WasiCtxBuilder::new ()
-            //.inherit_stdio ()
+            .inherit_stdio ()
             .inherit_env ()
             .preopened_dir(host_path, ".", DirPerms::all(), FilePerms::all())
             .expect("Unable to config directory. ")
