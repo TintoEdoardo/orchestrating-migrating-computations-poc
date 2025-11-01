@@ -42,4 +42,5 @@ echo -n "$5 " >> experiment_data/migration.txt
 
 # Start the experiment.
 cd experiment_folder/
-sudo timeout $experiment_time ./app_lev_orc $3
+# sudo timeout $experiment_time ./app_lev_orc $3
+sudo ./app_lev_orc $3
