@@ -35,7 +35,7 @@ pub(crate) fn set_niceness (thread: u32, niceness: u32)
                 sched_priority: 0 as libc::c_int,
             };
             let tid : libc::pid_t = thread as libc::pid_t;
-            libc::sched_setscheduler (tid, libc::SCHED_OTHER, &sched_param);
+            libc::sched_setscheduler (tid, libc::SCHED_BATCH, &sched_param);
             libc::nice (niceness as libc::c_int);
         }
 }
