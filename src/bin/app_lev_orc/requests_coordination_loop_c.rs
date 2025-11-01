@@ -589,11 +589,17 @@ impl ControlSystem
                                     let main_mem_path = format! ("{}/main_memory.b", path_to_req_dir);
                                     let checkpoint_mem_path = format! ("{}/checkpoint_memory.b", path_to_req_dir);
                                     let input_img_path = format! ("{}/input_small.pgm", path_to_req_dir);
+
                                     let files_to_compress: Vec<std::path::PathBuf> = vec![
-                                        std::path::PathBuf::from (module_path),
+                                        std::path::PathBuf::from (module_path.clone ()),
                                         std::path::PathBuf::from (main_mem_path),
                                         std::path::PathBuf::from (checkpoint_mem_path),
                                         std::path::PathBuf::from (input_img_path),
+                                    ];
+
+                                    #[cfg(feature = "no_live_migration")]
+                                    let files_to_compress: Vec<std::path::PathBuf> = vec![
+                                        std::path::PathBuf::from (module_path.clone ())
                                     ];
 
                                     let options: zip::write::FileOptions<()> = zip::write::FileOptions::default ()
@@ -692,7 +698,7 @@ impl ControlSystem
                         #[cfg(feature = "print_log")]
                         println! ("requests_coordination_loop - federation/dst RECEIVE");
 
-                        #[cfg(feature = "timing_log")]
+                        #[cfg(feature = "migration_log")]
                         unsafe
                             {
                                 libc::clock_gettime (libc::CLOCK_MONOTONIC, &mut start_receive);
