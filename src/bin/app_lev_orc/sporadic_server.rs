@@ -489,7 +489,7 @@ impl sporadic_server::Workload for WasmWorkload
                                 .expect ("Unable to export checkpoint memory");
 
                         // Copy the main memory to file.
-                        std::fs::write (main_memory_path, main_memory.data (&store))
+                        std::fs::write (main_memory_path, &main_memory.data (&store))
                             .expect("Failed to write main memory to file");
 
                         // Same for the checkpoint memory containing the stored variables.

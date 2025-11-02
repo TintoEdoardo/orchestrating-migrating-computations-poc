@@ -28,14 +28,14 @@ fn main()
             .expect ("add_to_linker_sync failed. ");
 
         // Add the should_migrate function mock.
-        linker.func_wrap ("host", "should_migrate", |caller: wasmtime::Caller<'_, MyState>|
+        linker.func_wrap ("host", "should_migrate", |_caller: wasmtime::Caller<'_, MyState>|
             {
                 0
             }
         ).expect ("func_wrap failed. ");
 
         // Add the restore_memory, which do nothing right now.
-        linker.func_wrap ("host", "restore_memory", move |caller: wasmtime::Caller<'_, MyState>|
+        linker.func_wrap ("host", "restore_memory", move |_caller: wasmtime::Caller<'_, MyState>|
             {
                 // Do nothing.
             }

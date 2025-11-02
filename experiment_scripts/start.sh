@@ -23,7 +23,6 @@ sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating
 echo "LOG FILES SAVED AND CLEARED"
 
 : <<'COMMENT'
-COMMENT
 
 # Experiment 1.
 iteration=0
@@ -57,6 +56,7 @@ while read -u 9 line; do
 
   ((iteration++))
 done 9< experiment_data/distances.txt
+COMMENT
 
 # Experiment 2.
 for (( i=1; i<=50; i++))
@@ -72,7 +72,7 @@ do
   sshpass -f node_user_password.txt ssh ubuntu@$node_2 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m ./experiment_scripts/start_local_2.sh 1 centralized node_1 \"$state_1\" $i"; echo ""
   sshpass -f node_user_password.txt ssh ubuntu@$node_3 "cd orchestrating-migrating-computations-poc; echo $(cat node_user_password.txt) | sudo -S screen -d -m ./experiment_scripts/start_local_2.sh 0 centralized node_2 \"$state_2\" $i"; echo ""
 
-  sleep 60s
+  sleep 75s
 
   mosquitto_pub -h 192.168.1.210 -t "federation/node_available" -m "node_available"
 
